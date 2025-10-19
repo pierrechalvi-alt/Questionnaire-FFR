@@ -177,3 +177,34 @@ color: var(--bleu-ffr);
 font-weight: 600;
 margin-top: 5px;
 }
+/* --- Animation slide-up / slide-down --- */
+.slide {
+overflow: hidden;
+transition: max-height 0.4s ease, opacity 0.4s ease;
+max-height: 0;
+opacity: 0;
+}
+
+.slide.show {
+max-height: 1500px; /* assez pour contenir les sous-questions */
+opacity: 1;
+}
+/* --- Effet de décalage progressif (stagger) --- */
+.stagger {
+opacity: 0;
+transform: translateY(10px);
+animation: fadeSlideIn 0.4s ease forwards;
+}
+
+@keyframes fadeSlideIn {
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}/* --- Effet de surbrillance bleutée (FFR style) --- */
+.subcard.active {
+box-shadow: 0 0 12px rgba(0, 102, 204, 0.25);
+border: 1px solid rgba(0, 102, 204, 0.3);
+background-color: rgba(0, 102, 204, 0.03);
+transition: all 0.4s ease;
+}
