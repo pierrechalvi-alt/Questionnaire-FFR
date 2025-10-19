@@ -1,0 +1,179 @@
+/* Import de la police Poppins */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+/* Variables principales */
+:root {
+--bleu-ffr: #003366;
+--gris-clair: #f7f8fa;
+--gris-texte: #444;
+--blanc: #ffffff;
+--accent: #0074d9;
+}
+
+/* Style global */
+body {
+font-family: 'Poppins', sans-serif;
+background-color: var(--gris-clair);
+margin: 0;
+padding: 0;
+color: var(--gris-texte);
+}
+
+/* En-tête */
+header {
+background-color: var(--bleu-ffr);
+color: var(--blanc);
+text-align: center;
+padding: 30px 10px;
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+font-weight: 600;
+font-size: 1.8rem;
+margin-bottom: 5px;
+}
+
+header p {
+font-weight: 300;
+opacity: 0.9;
+}
+
+/* Conteneur principal */
+main {
+max-width: 900px;
+margin: 30px auto;
+padding: 0 20px;
+}
+
+/* Carte/question bloc */
+.card {
+background: var(--blanc);
+border-radius: 10px;
+padding: 25px;
+margin-bottom: 25px;
+box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+transition: all 0.3s ease;
+}
+
+.card:hover {
+box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Titres de section */
+h2 {
+color: var(--bleu-ffr);
+font-size: 1.4rem;
+margin-bottom: 15px;
+}
+
+/* Groupes de checkbox/radio */
+.checkbox-group {
+display: flex;
+flex-wrap: wrap;
+gap: 12px 25px;
+margin-bottom: 15px;
+}
+
+.checkbox-group label {
+font-weight: 400;
+cursor: pointer;
+display: flex;
+align-items: center;
+gap: 6px;
+}
+
+/* Inputs */
+input[type="checkbox"],
+input[type="radio"] {
+transform: scale(1.1);
+accent-color: var(--accent);
+}
+
+/* Bouton principal */
+button {
+background-color: var(--bleu-ffr);
+color: var(--blanc);
+border: none;
+border-radius: 6px;
+padding: 14px 25px;
+font-size: 1rem;
+cursor: pointer;
+transition: background-color 0.3s ease, transform 0.2s ease;
+font-family: 'Poppins', sans-serif;
+}
+
+button:hover {
+background-color: var(--accent);
+transform: translateY(-2px);
+}
+
+/* Section d'envoi */
+.submit-section {
+text-align: center;
+}
+
+#resultMessage {
+margin-top: 15px;
+font-weight: 600;
+color: var(--accent);
+}
+
+/* Pied de page */
+footer {
+text-align: center;
+padding: 20px;
+color: #777;
+font-size: 0.9rem;
+}
+
+/* Responsif mobile */
+@media (max-width: 600px) {
+body {
+font-size: 0.9rem;
+}
+header h1 {
+font-size: 1.4rem;
+}
+.card {
+padding: 20px;
+}
+}/* --- Effet d’apparition --- */
+.fade-in {
+opacity: 0;
+transform: translateY(15px);
+animation: fadeSlideIn 0.6s ease forwards;
+}
+
+@keyframes fadeSlideIn {
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+/* --- Barre de progression --- */
+#progress-container {
+width: 100%;
+background-color: #e4e8ee;
+border-radius: 20px;
+overflow: hidden;
+height: 20px;
+margin: 20px 0;
+position: relative;
+}
+
+#progress-bar {
+height: 100%;
+width: 0%;
+background-color: var(--accent);
+transition: width 0.5s ease;
+}
+
+#progress-text {
+text-align: right;
+font-size: 0.9rem;
+color: var(--bleu-ffr);
+font-weight: 600;
+margin-top: 5px;
+}
