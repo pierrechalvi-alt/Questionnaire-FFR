@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Questionnaire Testing - Staff Rugby</title>
+
+<!-- Police Poppins -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<!-- Feuille de style -->
+<link rel="stylesheet" href="style.css" />
+
+</head>
+<body>
+<header>
+<h1>Questionnaire interactif – Tests Pré-saison & Retour au jeu</h1>
+<p>Destiné aux staffs médicaux et de performance (Top 14 / FFR)</p>
+</header>
+
+<main>
+<!-- Barre de progression -->
+<div id="progress-container">
+<div id="progress-bar"></div>
+<p id="progress-text">Progression : 0%</p>
+</div>
+
+<form id="questionnaireForm">
+
+<!-- SECTION 1 : Informations générales -->
+<section class="card fade-in">
+<h2>Informations sur le participant</h2>
+
+<label for="role">Quel est votre rôle au sein de la structure ?</label>
+<div class="checkbox-group" id="role">
+<label><input type="radio" name="role" value="Médecin"> Médecin</label>
+<label><input type="radio" name="role" value="Kinésithérapeute"> Kinésithérapeute</label>
+<label><input type="radio" name="role" value="Préparateur physique"> Préparateur physique</label>
+<label><input type="radio" name="role" value="Entraîneur"> Entraîneur</label>
+<label><input type="radio" name="role" value="Autre"> Autre</label>
+</div>
+
+<label for="structure">Quelle est votre structure actuelle ?</label>
+<div class="checkbox-group" id="structure">
+<label><input type="radio" name="structure" value="FFR"> FFR</label>
+<label><input type="radio" name="structure" value="Top14"> Top 14</label>
+</div>
+</section>
+
+<!-- SECTION 2 : Zones anatomiques -->
+<section class="card fade-in">
+<h2>Zones anatomiques évaluées</h2>
+<p>Sélectionnez une ou plusieurs zones du corps :</p>
+<div class="checkbox-group" id="zones">
+<label><input type="checkbox" value="Tête"> Tête</label>
+<label><input type="checkbox" value="Rachis cervical"> Rachis cervical</label>
+<label><input type="checkbox" value="Épaule"> Épaule</label>
+<label><input type="checkbox" value="Coude"> Coude</label>
+<label><input type="checkbox" value="Poignet / Main"> Poignet / Main</label>
+<label><input type="checkbox" value="Rachis lombaire"> Rachis lombaire</label>
+<label><input type="checkbox" value="Hanche"> Hanche</label>
+<label><input type="checkbox" value="Genou"> Genou</label>
+<label><input type="checkbox" value="Cheville / Pied"> Cheville / Pied</label>
+</div>
+</section>
+
+<!-- SECTION DYNAMIQUE -->
+<section class="card fade-in" id="dynamicSection">
+<h2>Détails des tests par zone</h2>
+<div id="zoneQuestions"></div>
+</section>
+
+<!-- SECTION FINALE -->
+<section class="card fade-in" id="commonQuestions">
+<h2>Questions communes</h2>
+
+<label>Quelles sont les limites ou barrières rencontrées ?</label>
+<div class="checkbox-group">
+<label><input type="checkbox" name="barrieres" value="Temps"> Temps</label>
+<label><input type="checkbox" name="barrieres" value="Matériel"> Matériel</label>
+<label><input type="checkbox" name="barrieres" value="Ressources"> Ressources</label>
+<label><input type="checkbox" name="barrieres" value="Priorité"> Priorité</label>
+<label><input type="checkbox" name="barrieres" value="Manque d’adhésion des joueurs"> Manque d’adhésion des joueurs</label>
+</div>
+
+<label>Qu’est-ce qui guide vos choix de tests ?</label>
+<div class="checkbox-group">
+<label><input type="checkbox" name="raisons" value="Habitudes"> Habitudes</label>
+<label><input type="checkbox" name="raisons" value="Littérature"> Littérature</label>
+<label><input type="checkbox" name="raisons" value="Disponibilité des outils"> Disponibilité des outils</label>
+<label><input type="checkbox" name="raisons" value="Recommandation club/fédération"> Recommandation club/fédération</label>
+</div>
+</section>
+
+<!-- Bouton final -->
+<section class="card fade-in submit-section">
+<button type="button" id="submitBtn">📤 Envoyer le questionnaire</button>
+<p id="resultMessage"></p>
+</section>
+</form>
+</main>
+
+<footer>
+<p>© 2025 – Questionnaire Pré-saison / Retour au jeu – Projet Rugby Performance</p>
+</footer>
+
+<!-- Script -->
+<script src="script.js"></script>
+</body>
+</html>
