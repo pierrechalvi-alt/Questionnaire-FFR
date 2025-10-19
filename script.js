@@ -45,6 +45,10 @@ section.innerHTML = `
 
 <label>Quels types de tests sont réalisés ?</label>
 <div class="checkbox-group types">
+${zoneName === "Tête" ? `
+<label><input type="checkbox" value="Questionnaires"> Questionnaires</label>
+<label><input type="checkbox" value="Autres données"> Autres données</label>
+` : `
 <label><input type="checkbox" value="Force"> Force</label>
 <label><input type="checkbox" value="Mobilité"> Mobilité</label>
 ${lowerBodyZones.includes(zoneName) ? `
@@ -53,6 +57,7 @@ ${lowerBodyZones.includes(zoneName) ? `
 <label><input type="checkbox" value="Proprioception / Équilibre"> Proprioception / Équilibre</label>
 <label><input type="checkbox" value="Questionnaires"> Questionnaires</label>
 <label><input type="checkbox" value="Autres données"> Autres données</label>
+`}
 </div>
 
 <div class="subquestions" id="sub-${zoneName.replace(/\s+/g, "-")}"></div>
@@ -62,18 +67,37 @@ zoneQuestionsContainer.appendChild(section);
 const typeCheckboxes = section.querySelectorAll(".types input[type='checkbox']");
 const subQContainer = section.querySelector(".subquestions");
 
-// Gestion de l’apparition et disparition avec décalage progressif + surbrillance
+// Gestion dynamique avec effet slide + décalage + surbrillance
 typeCheckboxes.forEach((cb, i) => {
 cb.addEventListener("change", () => {
 const id = `sub-${zoneName}-${cb.value}`;
 const existing = subQContainer.querySelector(`#${id}`);
 
 if (cb.checked) {
-const subSection = createSubQuestion(zoneName, cb.value);
+let subSection;
+
+// Cas particulier pour la Tête → sous-question spécifique “Autres données”
+if (zoneName === "Tête" && cb.value === "Autres données") {
+subSection = document.createElement("div");
+subSection.id = id;
+subSection.classList.add("slide", "stagger");
+subSection.style.animationDelay = `${i * 0.1}s`;
+subSection.innerHTML = `
+<h4>Autres données (Tête)</h4>
+<div class="checkbox-group">
+<label><input type="checkbox" value="Antécédents médicaux"> Antécédents médicaux</label>
+<label><input type="checkbox" value="Test de cognition"> Test de cognition</label>
+</div>
+`;
+} else {
+// Cas normal → génère les sous-sections standards
+subSection = createSubQuestion(zoneName, cb.value);
 subSection.classList.add("slide");
-subSection.style.animationDelay = `${i * 0.1}s`; // décalage progressif
+subSection.style.animationDelay = `${i * 0.1}s`;
+}
+
 subQContainer.appendChild(subSection);
-section.classList.add("active"); // surbrillance bleue à l’ouverture
+section.classList.add("active");
 
 setTimeout(() => {
 subSection.classList.add("show", "stagger");
@@ -83,7 +107,7 @@ existing.classList.remove("show");
 setTimeout(() => {
 existing.remove();
 
-// Retirer la surbrillance si plus aucun test n’est sélectionné
+// Si plus de test sélectionné, on retire la surbrillance
 const stillChecked = section.querySelectorAll(".types input:checked").length > 0;
 if (!stillChecked) section.classList.remove("active");
 
