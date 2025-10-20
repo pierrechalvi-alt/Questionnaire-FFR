@@ -290,3 +290,36 @@ resultMessage.style.color = "#0074d9";
 window.scrollTo({ top: 0, behavior: "smooth" });
 });
 });
+// --- Envoi des réponses vers Google Form ---
+const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdapFr_E-reVlW6HIdRynqwSd5Fc8eebgO5QX2t5EXjpCRYdw/viewform?usp=pp_url&entry.1252291742=test";
+const GOOGLE_FIELD_ENTRY = "entry.1252291742"; // à remplacer par ton ID de champ
+
+function sendToGoogleForm(responses) {
+const formData = new FormData();
+formData.append(GOOGLE_FIELD_ENTRY, JSON.stringify(responses));
+
+fetch(GOOGLE_FORM_URL, {
+method: "POST",
+mode: "no-cors",
+body: formData
+})
+.then(() => {
+alert("
+￼
+ Vos réponses ont été envoyées avec succès !");
+localStorage.removeItem("responses");
+})
+.catch(() => {
+alert("
+￼
+ Erreur lors de l’envoi. Vérifiez votre connexion internet.");
+});
+}document.getElementById("submit-btn").addEventListener("click", () => {
+const isValid = validateBeforeSubmit(); // ta fonction de vérif des champs
+if (isValid) {
+const savedResponses = JSON.parse(localStorage.getItem("responses") || "{}");
+sendToGoogleForm(savedResponses);
+} else {
+alert("❌ Merci de compléter tous les champs obligatoires avant d’envoyer.");
+}
+});
