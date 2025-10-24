@@ -2,58 +2,68 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Questionnaire Testing - Staff Rugby</title>
-
-<!-- Police Poppins -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Questionnaire interactif – Tests Pré-saison & Retour au jeu</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<!-- Feuille de style -->
-<link rel="stylesheet" href="style.css" />
-
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 <header>
 <h1>Questionnaire interactif – Tests Pré-saison & Retour au jeu</h1>
-<p>Destiné aux staffs médicaux et de performance (Top 14 / FFR)</p>
+<p>Destiné aux staffs médicaux et de performance</p>
 </header>
 
 <main>
-<!-- Barre de progression -->
-<div id="progress-container">
+<!-- Progression -->
+<div id="progress-container" class="card">
 <div id="progress-bar"></div>
 <p id="progress-text">Progression : 0%</p>
 </div>
 
-<form id="questionnaireForm">
-
-<!-- SECTION 1 : Informations générales -->
+<form id="questionnaireForm" novalidate>
+<!-- SECTION 1 : Infos participant -->
 <section class="card fade-in">
 <h2>Informations sur le participant</h2>
 
-<label for="role">Quel est votre rôle au sein de la structure ?</label>
+<div class="two-col">
+<div class="field">
+<label>Nom <span class="req">*</span></label>
+<input type="text" id="nom" required placeholder="Votre nom">
+</div>
+<div class="field">
+<label>Prénom <span class="req">*</span></label>
+<input type="text" id="prenom" required placeholder="Votre prénom">
+</div>
+</div>
+
+<label>Quel est votre rôle au sein de la structure ? <span class="req">*</span></label>
 <div class="checkbox-group" id="role">
-<label><input type="radio" name="role" value="Médecin"> Médecin</label>
+<label><input type="radio" name="role" value="Médecin" required> Médecin</label>
 <label><input type="radio" name="role" value="Kinésithérapeute"> Kinésithérapeute</label>
 <label><input type="radio" name="role" value="Préparateur physique"> Préparateur physique</label>
 <label><input type="radio" name="role" value="Entraîneur"> Entraîneur</label>
-<label><input type="radio" name="role" value="Autre"> Autre</label>
+<label><input type="radio" name="role" value="Autre" id="role-autre"> Autre</label>
 </div>
+<div id="role-autre-wrap" class="slide"></div>
 
-<label for="structure">Quelle est votre structure actuelle ?</label>
+<label>Auprès de quelle équipe intervenez-vous ? <span class="req">*</span></label>
 <div class="checkbox-group" id="structure">
-<label><input type="radio" name="structure" value="FFR"> FFR</label>
-<label><input type="radio" name="structure" value="Top14"> Top 14</label>
+<label><input type="radio" name="structure" value="XV masculin" required> XV masculin</label>
+<label><input type="radio" name="structure" value="XV féminin"> XV féminin</label>
+<label><input type="radio" name="structure" value="7 masculin"> 7 masculin</label>
+<label><input type="radio" name="structure" value="7 féminin"> 7 féminin</label>
+<label><input type="radio" name="structure" value="-20"> -20</label>
+<label><input type="radio" name="structure" value="Autre" id="struct-autre"> Autre</label>
 </div>
+<div id="struct-autre-wrap" class="slide"></div>
 </section>
 
 <!-- SECTION 2 : Zones anatomiques -->
 <section class="card fade-in">
-<h2>Zones anatomiques évaluées</h2>
+<h2>Zones anatomiques évaluées <span class="req">*</span></h2>
 <p>Sélectionnez une ou plusieurs zones du corps :</p>
 <div class="checkbox-group" id="zones">
-<label><input type="checkbox" value="Tête"> Tête</label>
-<label><input type="checkbox" value="Rachis cervical"> Rachis cervical</label>
+<label><input type="checkbox" value="Tête / Rachis cervical"> Tête / Rachis cervical</label>
 <label><input type="checkbox" value="Épaule"> Épaule</label>
 <label><input type="checkbox" value="Coude"> Coude</label>
 <label><input type="checkbox" value="Poignet / Main"> Poignet / Main</label>
@@ -64,35 +74,47 @@
 </div>
 </section>
 
-<!-- SECTION DYNAMIQUE -->
+<!-- SECTION 3 : Détails dynamiques -->
 <section class="card fade-in" id="dynamicSection">
 <h2>Détails des tests par zone</h2>
 <div id="zoneQuestions"></div>
+
+<!-- Blocs globaux générés selon MI / Tête-rachis -->
+<div id="global-functional-mi"></div>
+<div id="global-functional-ms"></div>
+<div id="global-jumps"></div>
+<div id="global-course"></div>
+<div id="global-combat"></div>
 </section>
 
-<!-- SECTION FINALE -->
+<!-- SECTION 4 : Questions communes -->
 <section class="card fade-in" id="commonQuestions">
 <h2>Questions communes</h2>
 
 <label>Quelles sont les limites ou barrières rencontrées ?</label>
-<div class="checkbox-group">
-<label><input type="checkbox" name="barrieres" value="Temps"> Temps</label>
-<label><input type="checkbox" name="barrieres" value="Matériel"> Matériel</label>
-<label><input type="checkbox" name="barrieres" value="Ressources"> Ressources</label>
-<label><input type="checkbox" name="barrieres" value="Priorité"> Priorité</label>
-<label><input type="checkbox" name="barrieres" value="Manque d’adhésion des joueurs"> Manque d’adhésion des joueurs</label>
+<div class="checkbox-group" id="q-barrieres">
+<label><input type="checkbox" value="Temps"> Temps</label>
+<label><input type="checkbox" value="Matériel"> Matériel</label>
+<label><input type="checkbox" value="Ressources"> Ressources</label>
+<label><input type="checkbox" value="Priorité"> Priorité</label>
+<label><input type="checkbox" value="Manque d’adhésion des joueurs"> Manque d’adhésion des joueurs</label>
+<label><input type="checkbox" value="Autre" id="comm-bar-autre"> Autre</label>
 </div>
+<div id="comm-bar-autre-wrap" class="slide"></div>
 
 <label>Qu’est-ce qui guide vos choix de tests ?</label>
-<div class="checkbox-group">
-<label><input type="checkbox" name="raisons" value="Habitudes"> Habitudes</label>
-<label><input type="checkbox" name="raisons" value="Littérature"> Littérature</label>
-<label><input type="checkbox" name="raisons" value="Disponibilité des outils"> Disponibilité des outils</label>
-<label><input type="checkbox" name="raisons" value="Recommandation club/fédération"> Recommandation club/fédération</label>
+<div class="checkbox-group" id="q-raisons">
+<label><input type="checkbox" value="Littérature"> Littérature</label>
+<label><input type="checkbox" value="Disponibilité"> Disponibilité</label>
+<label><input type="checkbox" value="Expertise personnelle"> Expertise personnelle</label>
+<label><input type="checkbox" value="Recommandation/Directive"> Recommandation/Directive</label>
+<label><input type="checkbox" value="Partage d’expérience"> Partage d’expérience</label>
+<label><input type="checkbox" value="Autre" id="comm-rais-autre"> Autre</label>
 </div>
+<div id="comm-rais-autre-wrap" class="slide"></div>
 </section>
 
-<!-- Bouton final -->
+<!-- SECTION 5 : Envoi -->
 <section class="card fade-in submit-section">
 <button type="button" id="submitBtn">📤 Envoyer le questionnaire</button>
 <p id="resultMessage"></p>
@@ -104,7 +126,10 @@
 <p>© 2025 – Questionnaire Pré-saison / Retour au jeu – Projet Rugby Performance</p>
 </footer>
 
-<!-- Script -->
+<script>
+window.GFORM_ENDPOINT = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSeNok3wNrafUFIM2VnAo4NKQpdZDaDyFDeVS8dZbXFyt_ySyA/formResponse";
+window.GFORM_ENTRY_KEY = "entry.1237244370";
+</script>
 <script src="script.js"></script>
 </body>
 </html>
