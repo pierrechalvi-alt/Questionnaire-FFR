@@ -1413,15 +1413,11 @@ fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
 
 try{
 await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
-resultMsg.style.color = "#0a7f2e";
-resultMsg.textContent = "✅ Merci, vos réponses ont été enregistrées.";
-form.reset();
-byId("zoneQuestions").innerHTML = "";
-byId("globalsSection").style.display="none";
-byId("globalBlocks").innerHTML = "";
-jumpsBlock = courseBlock = globalMIBlock = globalMSBlock = combatBlock = null;
-updateProgress();
-window.scrollTo({top:0,behavior:"smooth"});
+// Marqueur pour afficher le message après refresh
+sessionStorage.setItem("questionnaire_sent_ok", "1");
+
+// Recharge la page pour repartir sur un formulaire vierge
+window.location.reload();
 }catch(err){
 resultMsg.style.color = "#d11c1c";
 resultMsg.textContent = "⚠️ Erreur d’envoi. Vérifiez votre connexion et réessayez.";
@@ -1448,5 +1444,15 @@ toggle();
 setupCommonAutre("barrieres","barrieres-autre");
 setupCommonAutre("raisons","raisons-autre");
 
+// ===== Message après rechargement (post-envoi) =====
+const SENT_FLAG = "questionnaire_sent_ok";
+if (sessionStorage.getItem(SENT_FLAG) === "1") {
+  sessionStorage.removeItem(SENT_FLAG);
+  resultMsg.style.color = "#0a7f2e";
+  resultMsg.textContent = "✅ Votre questionnaire a bien été envoyé.";
+  // Scroll vers le message (optionnel)
+  resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+  
 updateProgress();
 });
