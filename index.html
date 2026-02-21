@@ -25,6 +25,8 @@
     <div id="progress-text">Progression : 0%</div>
   </div>
 
+  <form id="questionnaireForm">
+
   <!-- SECTION 1 : Informations générales -->
 <section class="card fade-in">
   <h2>Informations sur la structure</h2>
@@ -37,7 +39,7 @@
   <input type="text" id="club" name="club" placeholder="Nom du club" required>
 
   <label>Niveau de compétition <span class="req">*</span></label>
-  <div class="checkbox-group">
+ <div class="checkbox-group" id="niveauGroup">
     <label>
       <input type="radio" name="niveau" value="Top 14" required>
       Top 14
