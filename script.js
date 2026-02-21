@@ -47,12 +47,17 @@ document.addEventListener("change", updateProgress);
 * Rôle / Équipe : champs "Autre"
 * ------------------------------------------- */
 const toggleOther = (name, inputId) => {
-$(`input[name='${name}'][value='Autre']`)?.addEventListener("change", e => {
-byId(inputId).style.display = e.target.checked ? "block" : "none";
-});
-$$(`input[name='${name}']`).forEach(r => r.addEventListener("change", e => {
-if (e.target.value !== "Autre") byId(inputId).style.display = "none";
-}));
+  const otherRadio = $(`input[name='${name}'][value='Autre']`);
+  const input = byId(inputId);
+  if (!otherRadio || !input) return;
+
+  otherRadio.addEventListener("change", e => {
+    input.style.display = e.target.checked ? "block" : "none";
+  });
+
+  $$(`input[name='${name}']`).forEach(r => r.addEventListener("change", e => {
+    if (e.target.value !== "Autre") input.style.display = "none";
+  }));
 };
 toggleOther("role", "role-autre");
 toggleOther("equipe", "equipe-autre");
@@ -1049,6 +1054,34 @@ toggleGlobalsBlock();
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
 * ------------------------------------------- */
+// ===== Erreurs localisées =====
+const clearErrors = () => {
+  document.querySelectorAll(".error-msg").forEach(n => n.remove());
+  document.querySelectorAll(".has-error").forEach(n => n.classList.remove("has-error"));
+  document.querySelectorAll("[aria-invalid='true']").forEach(n => n.removeAttribute("aria-invalid"));
+};
+
+const errorContainerFor = (el) => {
+  return el?.closest(".card, .subcard, .checkbox-group, .grid-2, div") || el?.parentElement || el;
+};
+
+const showError = (anchorEl, msg) => {
+  const container = errorContainerFor(anchorEl);
+  if (!container) return;
+
+  container.classList.add("has-error");
+
+  if (anchorEl && anchorEl.setAttribute) anchorEl.setAttribute("aria-invalid", "true");
+
+  let m = container.querySelector(":scope > .error-msg");
+  if (!m) {
+    m = document.createElement("div");
+    m.className = "error-msg";
+    container.appendChild(m);
+  }
+  m.textContent = msg;
+};
+  
 const resultMsg = byId("resultMessage");
 const submitBtn = byId("submitBtn");
 const GOOGLE_FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSeNok3wNrafUFIM2VnAo4NKQpdZDaDyFDeVS8dZbXFyt_ySyA/formResponse";
@@ -1307,40 +1340,71 @@ const buildPayload = () => {
   return payload;
 };
 
-const validate = () => {
-if (!byId("nom").value.trim() || !byId("prenom").value.trim()) return "Merci de renseigner Nom et Prénom.";
-const role = document.querySelector("input[name='role']:checked");
-if (!role) return "Merci d’indiquer votre rôle.";
-if (role.value==="Autre" && byId("role-autre").style.display!=="none" && !byId("role-autre").value.trim()) return "Merci de préciser votre rôle.";
-const eq = document.querySelector("input[name='equipe']:checked");
-if (!eq) return "Merci d’indiquer l’équipe.";
-if (eq.value==="Autre" && byId("equipe-autre").style.display!=="none" && !byId("equipe-autre").value.trim()) return "Merci de préciser l’équipe.";
+const validateDetailed = () => {
+  const errors = [];
+  const add = (el, message) => errors.push({ el, message });
 
-if (selectedZones().length===0) return "Merci de sélectionner au moins une zone anatomique.";
+  // Obligatoires : selon ton HTML
+  const clubEl = byId("club");
+  if (!clubEl || !clubEl.value.trim()) add(clubEl, "Champ obligatoire : nom du club.");
 
-// champs "Autre" visibles
-const others = $$(".other-wrap input.other-input");
-for (const t of others) {
-if (requiredIfVisible(t) && !t.value.trim()) return "Merci de préciser les champs 'Autre' sélectionnés.";
-}
-// Communes
-const barAutreCb = byId("barrieres")?.querySelector("input[value='Autre']");
-if (barAutreCb && barAutreCb.checked && !byId("barrieres-autre").value.trim()) return "Merci de préciser les champs 'Autre' sélectionnés.";
-const raiAutreCb = byId("raisons")?.querySelector("input[value='Autre']");
-if (raiAutreCb && raiAutreCb.checked && !byId("raisons-autre").value.trim()) return "Merci de préciser les champs 'Autre' sélectionnés.";
+  const niveauChecked = document.querySelector("input[name='niveau']:checked");
+  const niveauAnchor = byId("niveauGroup") || document.querySelector("input[name='niveau']");
+  if (!niveauChecked) add(niveauAnchor, "Veuillez sélectionner le niveau de compétition.");
 
-return "";
+  const prepNom = byId("prep_nom");
+  const prepPrenom = byId("prep_prenom");
+  if (!prepNom || !prepNom.value.trim()) add(prepNom, "Champ obligatoire : nom du préparateur physique.");
+  if (!prepPrenom || !prepPrenom.value.trim()) add(prepPrenom, "Champ obligatoire : prénom du préparateur physique.");
+
+  const kineNom = byId("kine_nom");
+  const kinePrenom = byId("kine_prenom");
+  if (!kineNom || !kineNom.value.trim()) add(kineNom, "Champ obligatoire : nom du kiné.");
+  if (!kinePrenom || !kinePrenom.value.trim()) add(kinePrenom, "Champ obligatoire : prénom du kiné.");
+
+  // Zones : au moins 1
+  const zonesAnchor = byId("zones");
+  if (selectedZones().length === 0) add(zonesAnchor, "Veuillez sélectionner au moins une zone anatomique.");
+
+  // Champs "Autre" dynamiques (créés par ensureOtherText)
+  const others = $$(".other-wrap input.other-input");
+  for (const t of others) {
+    if (requiredIfVisible(t) && !t.value.trim()) add(t, "Veuillez préciser le champ “Autre”.");
+  }
+
+  // Questions communes : Autre => texte
+  const barAutreCb = byId("barrieres")?.querySelector("input[value='Autre']");
+  if (barAutreCb?.checked && !byId("barrieres-autre").value.trim()) {
+    add(byId("barrieres-autre"), "Veuillez préciser “Autre”.");
+  }
+
+  const raiAutreCb = byId("raisons")?.querySelector("input[value='Autre']");
+  if (raiAutreCb?.checked && !byId("raisons-autre").value.trim()) {
+    add(byId("raisons-autre"), "Veuillez préciser “Autre”.");
+  }
+
+  return errors;
 };
 
 submitBtn.addEventListener("click", async (e)=>{
 e.preventDefault();
-resultMsg.textContent="";
-const err = validate();
-if (err){
-resultMsg.style.color = "#d11c1c";
-resultMsg.textContent = "⚠️ " + err;
-window.scrollTo({top:0,behavior:"smooth"});
-return;
+
+clearErrors();
+resultMsg.textContent = "";
+
+const errors = validateDetailed();
+if (errors.length) {
+  errors.forEach(er => showError(er.el, er.message));
+
+  resultMsg.style.color = "#d11c1c";
+  resultMsg.textContent = `⚠️ ${errors.length} erreur(s) à corriger.`;
+
+  const first = errors[0]?.el;
+  const c = errorContainerFor(first);
+  c?.scrollIntoView({ behavior: "smooth", block: "center" });
+  first?.focus?.();
+
+  return;
 }
 
 const payload = buildPayload();
