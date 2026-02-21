@@ -229,3 +229,20 @@ footer{
   opacity: 1;
   overflow: visible;
 }
+
+/* ===== Validation localisée ===== */
+.has-error {
+  border-left: 4px solid #d11c1c;
+  padding-left: 12px;
+}
+
+.error-msg {
+  color: #d11c1c;
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+input[aria-invalid="true"] {
+  outline: 2px solid #d11c1c;
+  outline-offset: 2px;
+}
