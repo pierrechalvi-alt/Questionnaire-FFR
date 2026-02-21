@@ -1084,8 +1084,8 @@ const showError = (anchorEl, msg) => {
   
 const resultMsg = byId("resultMessage");
 const submitBtn = byId("submitBtn");
-const GOOGLE_FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSeNok3wNrafUFIM2VnAo4NKQpdZDaDyFDeVS8dZbXFyt_ySyA/formResponse";
-const GOOGLE_ENTRY_KEY = "entry.1237244370";
+const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3sv7z3aDWRJckLz9KMpDnsmg3-4zj-MuCUHzmpfl-u3xFdQ/viewform?usp=pp_url&entry.1017475409=test";
+const GOOGLE_ENTRY_KEY = "entry.1017475409";
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
