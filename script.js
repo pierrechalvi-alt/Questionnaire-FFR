@@ -15,6 +15,34 @@ const slug = s => (s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f
 const esc = s => s.replace(/([ #;?%&,.+*~\':"!^$[\]()=>|/@])/g,'\\$1');
 const byId = id => document.getElementById(id);
 const requiredIfVisible = el => el && el.offsetParent !== null;
+// ===== Dump brut de tous les champs (anti-oubli) =====
+const buildRawDump = () => {
+  const inputs = [...document.querySelectorAll("input, textarea, select")];
+
+  return inputs.map(el => {
+    const tag = el.tagName.toLowerCase();
+    const type = (el.type || tag).toLowerCase();
+
+    let value = "";
+    if (type === "checkbox" || type === "radio") {
+      value = el.checked ? (el.value ?? "on") : "";
+    } else {
+      value = (el.value ?? "").trim();
+    }
+
+    const isVisible = el.offsetParent !== null;
+
+    return {
+      id: el.id || null,
+      name: el.name || null,
+      type,
+      value,
+      checked: (type === "checkbox" || type === "radio") ? !!el.checked : null,
+      visible: isVisible,
+      section: el.closest(".card, .subcard")?.querySelector("h2,h3,h4,h5,h6")?.innerText?.trim() || null
+    };
+  });
+};
 
 /* ---------------------------------------------
 * PROGRESSION
@@ -1342,6 +1370,8 @@ const buildPayload = () => {
   payload.raisons = listVals(rai.querySelectorAll("input[type='checkbox']:checked"));
   if (rai.querySelector("input[value='Autre']")?.checked)
     payload.raisons_autre = byId("raisons-autre").value.trim();
+
+  payload.raw_dump = buildRawDump();
 
   return payload;
 };
