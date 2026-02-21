@@ -1095,14 +1095,20 @@ const buildPayload = () => {
 
   const payload = {};
 
-  // --- Infos principales
-  payload.nom = byId("nom").value.trim();
-  payload.prenom = byId("prenom").value.trim();
-  payload.role = (document.querySelector("input[name='role']:checked") || {}).value || "";
-  payload.role_autre = byId("role-autre").style.display !== "none" ? byId("role-autre").value.trim() : "";
-  payload.equipe = (document.querySelector("input[name='equipe']:checked") || {}).value || "";
-  payload.equipe_autre = byId("equipe-autre").style.display !== "none" ? byId("equipe-autre").value.trim() : "";
+    // --- Infos principales (alignées avec ton HTML)
+  payload.club = byId("club")?.value.trim() || "";
 
+  payload.niveau = (document.querySelector("input[name='niveau']:checked") || {}).value || "";
+
+  payload.preparateur = {
+    nom: byId("prep_nom")?.value.trim() || "",
+    prenom: byId("prep_prenom")?.value.trim() || ""
+  };
+
+  payload.kine = {
+    nom: byId("kine_nom")?.value.trim() || "",
+    prenom: byId("kine_prenom")?.value.trim() || ""
+  };
   // --- Zones sélectionnées
   payload.zones = selectedZones();
 
@@ -1407,7 +1413,15 @@ if (errors.length) {
   return;
 }
 
-const payload = buildPayload();
+let payload;
+try {
+  payload = buildPayload();
+} catch (err) {
+  resultMsg.style.color = "#d11c1c";
+  resultMsg.textContent = "⚠️ Erreur interne : impossible de construire le questionnaire (console).";
+  console.error(err);
+  return;
+}
 const fd = new FormData();
 fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
 
