@@ -49,13 +49,14 @@ const buildRawDump = () => {
 * ------------------------------------------- */
 const progressBar = byId("progress-bar");
 const progressContainer = byId("progress-container");
+const progressText = byId("progress-text");
 const form = byId("questionnaireForm");
 const formCards = $$(".card");
 
 const updateProgress = () => {
   const filled = formCards.filter(sec =>
     sec.querySelector("input:checked") ||
-    sec.querySelector("input[type='text'][value]")
+[...sec.querySelectorAll("input[type='text']")].some(i => i.value.trim() !== "")
   ).length;
 
   const total = formCards.length;
@@ -66,6 +67,7 @@ const updateProgress = () => {
 
   // Affichage du pourcentage au centre de la barre
   progressContainer.setAttribute("data-progress", pct);
+  if (progressText) progressText.textContent = `Progression : ${pct}%`;
 };
 
 // Déclenchement à chaque changement
@@ -1065,20 +1067,7 @@ if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendC
 // Combat
 toggleCombatBlock();
 };
-
-// Créer/supprimer sections au clic (fusion Tête/Rachis)
-zonesCbs.forEach(cb => {
-cb.addEventListener("change", () => {
-if (headNeck.includes(cb.value)) {
-const any = zonesCbs.some(z=>headNeck.includes(z.value) && z.checked);
-if (any) createZoneSection(headNeckTitle); else removeZoneSection(headNeckTitle);
-} else {
-if (cb.checked) createZoneSection(cb.value); else removeZoneSection(cb.value);
-}
-toggleGlobalsBlock();
-});
-});
-
+  
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
 * ------------------------------------------- */
