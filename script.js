@@ -263,7 +263,9 @@ sec.innerHTML = `
 <div class="checkbox-group types">
 ${zoneName===headNeckTitle?`<label><input type="checkbox" value="Force"> Force</label>
 <label><input type="checkbox" value="Mobilité"> Mobilité</label>
-<label><input type="checkbox" value="Test de cognition"> Test de cognition</label>`
+<label><input type="checkbox" value="Test de cognition"> Test de cognition</label>
+<label><input type="checkbox" value="Test oculaire"> Test oculaire</label>
+<label><input type="checkbox" value="Test vestibulaire"> Test vestibulaire</label>`
 :`<label><input type="checkbox" value="Force"> Force</label>
 <label><input type="checkbox" value="Mobilité"> Mobilité</label>`}
 ${hasProprio?`<label><input type="checkbox" value="Proprioception / Équilibre"> Proprioception / Équilibre</label>`:""}
@@ -313,6 +315,8 @@ if (cb.value==="Mobilité") block = createMobilityBlock(zoneName, id);
 if (cb.value==="Proprioception / Équilibre") block = createProprioBlock(zoneName, id);
 if (cb.value==="Questionnaires") block = createQuestionnaireBlock(zoneName, id);
 if (cb.value==="Test de cognition") block = createCognitionBlock(zoneName, id);
+if (cb.value==="Test oculaire") block = createSpecificHeadNeckTestBlock("oculaire", id);
+if (cb.value==="Test vestibulaire") block = createSpecificHeadNeckTestBlock("vestibulaire", id);
 if (cb.value==="Autres données") block = createOtherDataBlock(zoneName, id);
 
 if (block){
@@ -710,14 +714,24 @@ div.id = id;
 div.innerHTML = `
 <h4>Test de cognition</h4>
 <div class="checkbox-group">
-<label><input type="checkbox" value="Test oculaire"> Test oculaire</label>
-<label><input type="checkbox" value="Test vestibulaire"> Test vestibulaire</label>
+<label><input type="checkbox" value="Catch + Think"> Catch + Think</label>
+<label><input type="checkbox" value="Test de Stroop"> Test de Stroop</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
 ensureOtherText(div.querySelector(".checkbox-group"));
 return div;
 };
 
+const createSpecificHeadNeckTestBlock = (testType, id) => {
+const div = document.createElement("div");
+div.id = id;
+const label = testType === "oculaire" ? "Test oculaire" : "Test vestibulaire";
+div.innerHTML = `
+<h4>${label}</h4>
+<label>Précisez le test utilisé <span class="req">*</span></label>
+<input type="text" class="other-input small specific-test-input" placeholder="Nom du test utilisé" required>`;
+return div;
+};
 /* ---------------------------------------------
 * AUTRES DONNÉES
 * ------------------------------------------- */
@@ -1146,6 +1160,8 @@ const buildPayload = () => {
       proprio: [],
       questionnaires: [],
       cognition: [],
+      test_oculaire: [],
+      test_vestibulaire: [],
       autres_donnees: []
     };
 
@@ -1236,6 +1252,20 @@ const buildPayload = () => {
         const val = inp.value.trim();
         if (val) zoneData.cognition.push(`Autre: ${val}`);
       });
+    }
+    
+// ----- TEST OCULAIRE -----
+    const ocular = sec.querySelector(`#sub-${slug(zone)}-test-oculaire`);
+    if (ocular) {
+      const t = ocular.querySelector("input")?.value.trim();
+      if (t) zoneData.test_oculaire.push(t);
+    }
+
+    // ----- TEST VESTIBULAIRE -----
+    const vestib = sec.querySelector(`#sub-${slug(zone)}-test-vestibulaire`);
+    if (vestib) {
+      const t = vestib.querySelector("input")?.value.trim();
+      if (t) zoneData.test_vestibulaire.push(t);
     }
 
     // ----- AUTRES DONNÉES -----
@@ -1395,6 +1425,12 @@ const validateDetailed = () => {
   const others = $$(".other-wrap input.other-input");
   for (const t of others) {
     if (requiredIfVisible(t) && !t.value.trim()) add(t, "Veuillez préciser le champ “Autre”.");
+  }
+  
+ // Tests spécifiques Tête / Rachis cervical (obligatoires si cochés)
+  const specificTests = $$(".specific-test-input");
+  for (const t of specificTests) {
+    if (requiredIfVisible(t) && !t.value.trim()) add(t, "Veuillez préciser le test utilisé.");
   }
 
   // Questions communes : Autre => texte
