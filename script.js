@@ -1277,6 +1277,43 @@ const buildPayload = () => {
 
     payload.zones_details.push(zoneData);
   });
+  // --- SYNTHÈSE LISIBLE (zone x moment) POUR GOOGLE SHEETS ---
+  payload.articulations_pre_saison = payload.zones_details
+    .filter(z => z.moments.includes("Pré-saison"))
+    .map(z => z.zone);
+
+  payload.articulations_retour_au_jeu = payload.zones_details
+    .filter(z => z.moments.includes("Retour au jeu"))
+    .map(z => z.zone);
+
+  payload.synthese_zone_moment = payload.zones_details.map(z => ({
+    zone: z.zone,
+    pre_saison: z.moments.includes("Pré-saison"),
+    retour_au_jeu: z.moments.includes("Retour au jeu"),
+    autre_frequence: z.moments.includes("Autre fréquence"),
+    types_tests: z.types,
+    details: {
+      force: z.force,
+      mobilite: z.mobilite,
+      proprioception_equilibre: z.proprio,
+      questionnaires: z.questionnaires,
+      cognition: z.cognition,
+      test_oculaire: z.test_oculaire,
+      test_vestibulaire: z.test_vestibulaire,
+      autres_donnees: z.autres_donnees
+    }
+  }));
+
+  payload.synthese_lisible = payload.synthese_zone_moment.map(z => {
+    const moments = [
+      z.pre_saison ? "Pré-saison" : "",
+      z.retour_au_jeu ? "Retour au jeu" : "",
+      z.autre_frequence ? "Autre fréquence" : ""
+    ].filter(Boolean).join(" / ") || "Moment non précisé";
+
+    const types = z.types_tests.length ? z.types_tests.join(", ") : "Aucun type précisé";
+    return `${z.zone} | Moments: ${moments} | Types: ${types}`;
+  });
 
   // --- BLOCS GLOBAUX ---
   const gb = {};
@@ -1390,7 +1427,19 @@ const buildPayload = () => {
   if (rai.querySelector("input[value='Autre']")?.checked)
     payload.raisons_autre = byId("raisons-autre").value.trim();
 
-  payload.raw_dump = buildRawDump();
+ const rawDump = buildRawDump();
+  payload.raw_dump = rawDump;
+
+  // Réponses exhaustives (plus lisibles dans le tableur)
+  payload.reponses_exhaustives = rawDump
+    .filter(r => (r.checked === true) || (r.checked === null && r.value !== ""))
+    .map(r => ({
+      section: r.section,
+      name: r.name,
+      id: r.id,
+      value: r.value,
+      type: r.type
+    }));
 
   return payload;
 };
