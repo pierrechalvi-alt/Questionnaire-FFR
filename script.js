@@ -15,6 +15,7 @@ const slug = s => (s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f
 const esc = s => s.replace(/([ #;?%&,.+*~\':"!^$[\]()=>|/@])/g,'\\$1');
 const byId = id => document.getElementById(id);
 const requiredIfVisible = el => el && el.offsetParent !== null;
+const momentChoices = ["Pré-saison","Retour au jeu","Autre fréquence"];
 // ===== Dump brut de tous les champs (anti-oubli) =====
 const buildRawDump = () => {
   const inputs = [...document.querySelectorAll("input, textarea, select")];
@@ -182,6 +183,43 @@ other.addEventListener("change", ensure);
 ensure();
 };
 
+const getMomentSelectorHtml = (labelText = "À quel moment testez-vous ce type de test ?") => `
+<label>${labelText}</label>
+<div class="checkbox-group type-moment">
+${momentChoices.map(m=>`<label><input type="checkbox" value="${m}"> ${m}</label>`).join("")}
+</div>
+`;
+
+const initMomentGroup = (scope) => {
+const freqGroup = scope?.querySelector(".type-moment");
+if (!freqGroup) return;
+
+const autreFreq = freqGroup.querySelector("input[value='Autre fréquence']");
+if (!autreFreq) return;
+
+const ensureFreq = () => {
+let wrap = freqGroup.querySelector(".other-wrap");
+if (autreFreq.checked) {
+if (!wrap) {
+wrap = document.createElement("div");
+wrap.className = "other-wrap";
+wrap.innerHTML = `<input type="text" class="other-input small" placeholder="Fréquence (précisez)" required>`;
+freqGroup.appendChild(wrap);
+}
+} else if (wrap) {
+wrap.remove();
+}
+toggleCombatBlock();
+toggleGlobalsBlock();
+};
+
+autreFreq.addEventListener("change", ensureFreq);
+scope.querySelectorAll(".type-moment input").forEach(inp => {
+inp.addEventListener("change", () => toggleCombatBlock());
+});
+ensureFreq();
+};
+
 // ---- Isocinétisme: sous-questions standardisées
 const attachIsokineticHandlers = (scope) => {
 const groups = scope.querySelectorAll(".tools-group");
@@ -252,13 +290,6 @@ const hasQuestionnaires = (questionnairesByZone[zoneName]||[]).length>0;
 
 sec.innerHTML = `
 <h3>${zoneName}</h3>
-<label>À quel moment testez-vous cette zone ?</label>
-<div class="checkbox-group moment">
-<label><input type="checkbox" value="Pré-saison"> Pré-saison</label>
-<label><input type="checkbox" value="Retour au jeu"> Retour au jeu</label>
-<label><input type="checkbox" value="Autre fréquence"> Autre fréquence</label>
-</div>
-
 <label>Quels types de tests sont réalisés ?</label>
 <div class="checkbox-group types">
 ${zoneName===headNeckTitle?`<label><input type="checkbox" value="Force"> Force</label>
@@ -275,30 +306,6 @@ ${hasQuestionnaires?`<label><input type="checkbox" value="Questionnaires"> Quest
 <div class="subquestions"></div>
 `;
 zoneContainer.appendChild(sec);
-
-// "Autre fréquence" -> préciser
-const freqGroup = sec.querySelector(".moment");
-const autreFreq = freqGroup.querySelector("input[value='Autre fréquence']");
-const ensureFreq = () => {
-let wrap = freqGroup.querySelector(".other-wrap");
-if (autreFreq.checked) {
-if (!wrap) {
-wrap = document.createElement("div");
-wrap.className = "other-wrap";
-wrap.innerHTML = `<input type="text" class="other-input small" placeholder="Fréquence (précisez)" required>`;
-freqGroup.appendChild(wrap);
-}
-} else if (wrap) wrap.remove();
-toggleCombatBlock();
-toggleGlobalsBlock();
-};
-autreFreq.addEventListener("change", ensureFreq);
-// déclenche COMBAT si moment change
-sec.querySelectorAll(".moment input").forEach(inp => {
-inp.addEventListener("change", () => {
-toggleCombatBlock();
-});
-});
 
 const typesCbs = sec.querySelectorAll(".types input[type='checkbox']");
 const subQ = sec.querySelector(".subquestions");
@@ -322,10 +329,12 @@ if (cb.value==="Autres données") block = createOtherDataBlock(zoneName, id);
 if (block){
 block.classList.add("slide","show");
 subQ.appendChild(block);
+initMomentGroup(block);
 }
 } else if (exists) {
 exists.classList.remove("show");
 setTimeout(()=>exists.remove(),300);
+toggleCombatBlock();
 }
 });
 });
@@ -366,6 +375,7 @@ moves.push("Flexion/Extension");
 
 div.innerHTML = `
 <h4>Force – ${zoneName}</h4>
+${getMomentSelectorHtml()}
 <label>Quels mouvements évaluez-vous en force ?</label>
 <div class="checkbox-group force-moves">
 ${moves.map(m=>`<label><input type="checkbox" value="${m}"> ${m}</label>`).join("")}
@@ -603,6 +613,7 @@ if (zoneName==="Poignet / Main") moves.push("Inclinaison");
 
 div.innerHTML = `
 <h4>Mobilité – ${zoneName}</h4>
+${getMomentSelectorHtml()}
 <label>Quels mouvements évaluez-vous en mobilité ?</label>
 <div class="checkbox-group mob-moves">
 ${moves.map(m=>`<label><input type="checkbox" value="${m}"> ${m}</label>`).join("")}
@@ -673,6 +684,7 @@ const div = document.createElement("div");
 div.id = id;
 div.innerHTML = `
 <h4>Proprioception / Équilibre – ${zoneName}</h4>
+${getMomentSelectorHtml()}
 <label>Quels tests utilisez-vous ?</label>
 <div class="checkbox-group proprio-tests">
 ${list.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("")}
@@ -698,6 +710,7 @@ const div = document.createElement("div");
 div.id = id;
 div.innerHTML = `
 <h4>Questionnaires – ${zoneName}</h4>
+${getMomentSelectorHtml()}
 <div class="checkbox-group q-list">
 ${list.map(q=>`<label><input type="checkbox" value="${q}"> ${q}</label>`).join("")}
 </div>`;
@@ -713,6 +726,7 @@ const div = document.createElement("div");
 div.id = id;
 div.innerHTML = `
 <h4>Test de cognition</h4>
+${getMomentSelectorHtml()}
 <div class="checkbox-group">
 <label><input type="checkbox" value="Catch + Think"> Catch + Think</label>
 <label><input type="checkbox" value="Test de Stroop"> Test de Stroop</label>
@@ -728,6 +742,7 @@ div.id = id;
 const label = testType === "oculaire" ? "Test oculaire" : "Test vestibulaire";
 div.innerHTML = `
 <h4>${label}</h4>
+${getMomentSelectorHtml()}
 <label>Précisez le test utilisé <span class="req">*</span></label>
 <input type="text" class="other-input small specific-test-input" placeholder="Nom du test utilisé" required>`;
 return div;
@@ -740,6 +755,7 @@ const div = document.createElement("div");
 div.id = id;
 div.innerHTML = `
 <h4>Autres données – ${zoneName}</h4>
+${getMomentSelectorHtml()}
 <input type="text" class="other-input small" placeholder="Précisez la donnée collectée" required>`;
 return div;
 };
@@ -1037,8 +1053,12 @@ d.innerHTML = `
 return d;
 };
 
+const hasAnyReturnToPlaySelected = () => (
+  !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
+);
+
 const toggleCombatBlock = () => {
-const anyReturn = !!document.querySelector(".moment input[value='Retour au jeu']:checked");
+const anyReturn = hasAnyReturnToPlaySelected();
 if (anyReturn) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
@@ -1153,8 +1173,9 @@ const buildPayload = () => {
 
     const zoneData = {
       zone,
-      moments: gatherChecked(sec.querySelector(".moment")),
       types: gatherChecked(sec.querySelector(".types")),
+      moments: [],
+      moments_par_type: {},
       force: [],
       mobilite: [],
       proprio: [],
@@ -1164,6 +1185,17 @@ const buildPayload = () => {
       test_vestibulaire: [],
       autres_donnees: []
     };
+
+    const getTypeMoments = (typeValue) => {
+      const block = sec.querySelector(`#sub-${slug(zone)}-${slug(typeValue)}`);
+      if (!block) return [];
+      return gatherChecked(block.querySelector(".type-moment"));
+    };
+
+    zoneData.types.forEach(typeValue => {
+      zoneData.moments_par_type[typeValue] = getTypeMoments(typeValue);
+    });
+    zoneData.moments = [...new Set(Object.values(zoneData.moments_par_type).flat())];
 
     // ----- FORCE -----
     const force = sec.querySelector(`#sub-${slug(zone)}-force`);
@@ -1291,6 +1323,7 @@ const buildPayload = () => {
     pre_saison: z.moments.includes("Pré-saison"),
     retour_au_jeu: z.moments.includes("Retour au jeu"),
     autre_frequence: z.moments.includes("Autre fréquence"),
+    moments_par_type: z.moments_par_type,
     types_tests: z.types,
     details: {
       force: z.force,
@@ -1304,15 +1337,30 @@ const buildPayload = () => {
     }
   }));
 
-  payload.synthese_lisible = payload.synthese_zone_moment.map(z => {
-    const moments = [
-      z.pre_saison ? "Pré-saison" : "",
-      z.retour_au_jeu ? "Retour au jeu" : "",
-      z.autre_frequence ? "Autre fréquence" : ""
-    ].filter(Boolean).join(" / ") || "Moment non précisé";
+  payload.synthese_par_type = payload.zones_details.flatMap(z => {
+    const typeDetails = (type) => {
+      if (type === "Force") return z.force.map(f => f.mouvement).join(", ") || "Aucun mouvement précisé";
+      if (type === "Mobilité") return z.mobilite.map(m => m.mouvement).join(", ") || "Aucun mouvement précisé";
+      if (type === "Proprioception / Équilibre") return z.proprio.join(", ") || "Aucun test précisé";
+      if (type === "Questionnaires") return z.questionnaires.join(", ") || "Aucun questionnaire précisé";
+      if (type === "Test de cognition") return z.cognition.join(", ") || "Aucun test précisé";
+      if (type === "Test oculaire") return z.test_oculaire.join(", ") || "Aucun test précisé";
+      if (type === "Test vestibulaire") return z.test_vestibulaire.join(", ") || "Aucun test précisé";
+      if (type === "Autres données") return z.autres_donnees.join(", ") || "Aucune donnée précisée";
+      return "Détails non précisés";
+    };
 
-    const types = z.types_tests.length ? z.types_tests.join(", ") : "Aucun type précisé";
-    return `${z.zone} | Moments: ${moments} | Types: ${types}`;
+    return z.types.map(type => ({
+      zone: z.zone,
+      type,
+      moments: z.moments_par_type[type] || [],
+      details: typeDetails(type)
+    }));
+  });
+
+  payload.synthese_lisible = payload.synthese_par_type.map(item => {
+    const moments = item.moments.length ? item.moments.join(" / ") : "Moment non précisé";
+    return `📍 ${item.zone} | 🧪 ${item.type} | 🕒 ${moments} | 📌 ${item.details}`;
   });
 
   // --- BLOCS GLOBAUX ---
