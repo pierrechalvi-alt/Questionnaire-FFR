@@ -1628,6 +1628,29 @@ try {
 }
 try{
 const appScriptResult = await postToAppsScript(payload);
+if (appScriptResult.used && !appScriptResult.ok) {
+  throw new Error("Apps Script a répondu avec une erreur.");
+}
+
+if (!appScriptResult.used) {
+  // Fallback Google Form (mode dégradé si Apps Script non configuré)
+  const payloadString = buildGooglePayloadString(payload);
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, payloadString);
+  await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+}
+
+resultMsg.style.color = "#0a7f2e";
+resultMsg.textContent = appScriptResult.used
+  ? "✅ Envoi complet vers Google Sheets effectué."
+  : "✅ Envoi effectué (mode Google Form).";
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
+// Retour au comportement initial: confirmation conservée après rechargement
+sessionStorage.setItem("questionnaire_sent_ok", "1");
+window.location.reload();
+try{
+const appScriptResult = await postToAppsScript(payload);
 
 if (!appScriptResult.used) {
   // Fallback Google Form (mode dégradé si Apps Script non configuré)
@@ -1712,6 +1735,15 @@ toggle();
 };
 setupCommonAutre("barrieres","barrieres-autre");
 setupCommonAutre("raisons","raisons-autre");
+
+// ===== Message après rechargement (post-envoi) =====
+const SENT_FLAG = "questionnaire_sent_ok";
+if (sessionStorage.getItem(SENT_FLAG) === "1") {
+  sessionStorage.removeItem(SENT_FLAG);
+  resultMsg.style.color = "#0a7f2e";
+  resultMsg.textContent = "✅ Votre questionnaire a bien été envoyé.";
+  resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+}
 
 updateProgress();
 });
