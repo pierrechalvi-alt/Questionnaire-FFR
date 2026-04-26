@@ -1140,6 +1140,7 @@ const GOOGLE_ENTRY_KEY = "entry.1017475409";
 // Option recommandé : Web App Google Apps Script (collecte complète + structuration Google Sheets)
 // Ex: "https://script.google.com/macros/s/AKfycb.../exec"
 const APPS_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwz1j-YwMJnm2inJx8g1TJ624GmJVFagR54gLlyZaxvDxBVsa4oX8WEP7-bHia_Yu-7/exec";
+const APPS_SCRIPT_WEBHOOK_URL = "";
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
@@ -1648,6 +1649,64 @@ resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
 // Retour au comportement initial: confirmation conservée après rechargement
 sessionStorage.setItem("questionnaire_sent_ok", "1");
 window.location.reload();
+try{
+const appScriptResult = await postToAppsScript(payload);
+
+if (!appScriptResult.used) {
+  // Fallback Google Form (mode dégradé si Apps Script non configuré)
+  const payloadString = buildGooglePayloadString(payload);
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, payloadString);
+  await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+}
+
+resultMsg.style.color = "#0a7f2e";
+resultMsg.textContent = appScriptResult.used
+  ? "✅ Envoi complet vers Google Sheets effectué."
+  : "✅ Envoi effectué (mode Google Form).";
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
+// Réinitialisation locale (sans rechargement de page)
+form.reset();
+zoneContainer.innerHTML = "";
+
+try{
+const appScriptResult = await postToAppsScript(payload);
+
+if (!appScriptResult.used) {
+  // Fallback Google Form (mode dégradé si Apps Script non configuré)
+  const payloadString = buildGooglePayloadString(payload);
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, payloadString);
+  await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+}
+
+resultMsg.style.color = "#0a7f2e";
+resultMsg.textContent = appScriptResult.used
+  ? "✅ Envoi complet vers Google Sheets effectué."
+  : "✅ Envoi effectué (mode Google Form).";
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
+const payloadString = buildGooglePayloadString(payload);
+const fd = new FormData();
+fd.append(GOOGLE_ENTRY_KEY, payloadString);
+
+try{
+await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+resultMsg.style.color = "#0a7f2e";
+resultMsg.textContent = "✅ Votre questionnaire a bien été envoyé.";
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
+// Réinitialisation locale (sans rechargement de page)
+form.reset();
+zoneContainer.innerHTML = "";
+
+const globalBlocks = byId("globalBlocks");
+if (globalBlocks) globalBlocks.innerHTML = "";
+const globalsSection = byId("globalsSection");
+if (globalsSection) globalsSection.style.display = "none";
+
+updateProgress();
 }catch(err){
 resultMsg.style.color = "#d11c1c";
 resultMsg.textContent = "⚠️ Erreur d’envoi. Vérifiez votre connexion et réessayez.";
