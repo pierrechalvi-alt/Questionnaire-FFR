@@ -1137,6 +1137,9 @@ const resultMsg = byId("resultMessage");
 const submitBtn = byId("submitBtn");
 const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3sv7z3aDWRJckLz9KMpDnsmg3-4zj-MuCUHzmpfl-u3xFdQ/formResponse";
 const GOOGLE_ENTRY_KEY = "entry.1017475409";
+// Option recommandé : Web App Google Apps Script (collecte complète + structuration Google Sheets)
+// Ex: "https://script.google.com/macros/s/AKfycb.../exec"
+const APPS_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwz1j-YwMJnm2inJx8g1TJ624GmJVFagR54gLlyZaxvDxBVsa4oX8WEP7-bHia_Yu-7/exec";
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
@@ -1148,6 +1151,7 @@ const buildPayload = () => {
 
     // --- Infos principales (alignées avec ton HTML)
   payload.club = byId("club")?.value.trim() || "";
+  payload.submission_id = `SUB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
   payload.niveau = (document.querySelector("input[name='niveau']:checked") || {}).value || "";
 
@@ -1492,6 +1496,50 @@ const buildPayload = () => {
   return payload;
 };
 
+const buildGooglePayloadString = (payload) => {
+  // Évite les doublons très volumineux pour rester compatible avec un champ Google Forms.
+  const compact = {
+    club: payload.club || "",
+    niveau: payload.niveau || "",
+    preparateur: payload.preparateur || {},
+    kine: payload.kine || {},
+    zones: payload.zones || [],
+    synthese_lisible: payload.synthese_lisible || [],
+    globaux: payload.globaux || {},
+    barrieres: payload.barrieres || [],
+    barrieres_autre: payload.barrieres_autre || "",
+    raisons: payload.raisons || [],
+    raisons_autre: payload.raisons_autre || "",
+    envoye_le: new Date().toISOString()
+  };
+
+  let asString = JSON.stringify(compact);
+
+  // Garde-fou : si c'est encore trop long, on réduit la synthèse.
+  if (asString.length > 3500) {
+    const syntheseTxt = (compact.synthese_lisible || []).join(" | ");
+    compact.synthese_lisible = [`TRONQUE (${syntheseTxt.length} chars): ${syntheseTxt.slice(0, 1200)}`];
+    asString = JSON.stringify(compact);
+  }
+
+  return asString;
+};
+
+const postToAppsScript = async (payload) => {
+  if (!APPS_SCRIPT_WEBHOOK_URL) return { used: false, ok: false };
+
+  await fetch(APPS_SCRIPT_WEBHOOK_URL, {
+    method: "POST",
+    // Apps Script Web App est cross-origin : no-cors évite les blocages CORS côté navigateur.
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+
+  // En no-cors, la réponse est opaque: on ne peut pas lire le status HTTP.
+  return { used: true, ok: true };
+};
+
 const validateDetailed = () => {
   const errors = [];
   const add = (el, message) => errors.push({ el, message });
@@ -1546,12 +1594,16 @@ const validateDetailed = () => {
 
 submitBtn.addEventListener("click", async (e)=>{
 e.preventDefault();
+submitBtn.disabled = true;
+submitBtn.textContent = "⏳ Envoi en cours...";
 
 clearErrors();
 resultMsg.textContent = "";
 
 const errors = validateDetailed();
 if (errors.length) {
+  submitBtn.disabled = false;
+  submitBtn.textContent = "📤 Envoyer le questionnaire";
   errors.forEach(er => showError(er.el, er.message));
 
   resultMsg.style.color = "#d11c1c";
@@ -1569,24 +1621,51 @@ let payload;
 try {
   payload = buildPayload();
 } catch (err) {
+  submitBtn.disabled = false;
+  submitBtn.textContent = "📤 Envoyer le questionnaire";
   resultMsg.style.color = "#d11c1c";
   resultMsg.textContent = "⚠️ Erreur interne : impossible de construire le questionnaire (console).";
   console.error(err);
   return;
 }
-const fd = new FormData();
-fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
-
 try{
-await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
-// Marqueur pour afficher le message après refresh
-sessionStorage.setItem("questionnaire_sent_ok", "1");
+let appScriptResult = { used: false, ok: false };
+let appScriptError = null;
 
-// Recharge la page pour repartir sur un formulaire vierge
+// On tente d'abord Apps Script, mais on bascule automatiquement sur Google Form en cas d'échec.
+try {
+  appScriptResult = await postToAppsScript(payload);
+} catch (err) {
+  appScriptError = err;
+}
+
+if (!appScriptResult.used) {
+  // Fallback Google Form (si Apps Script non configuré ou indisponible)
+  const payloadString = buildGooglePayloadString(payload);
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, payloadString);
+  await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+}
+
+resultMsg.style.color = "#0a7f2e";
+if (appScriptResult.used) {
+  resultMsg.textContent = "✅ Envoi effectué vers Google Sheets.";
+} else if (appScriptError) {
+  resultMsg.textContent = "✅ Envoi effectué (mode Google Form de secours).";
+} else {
+  resultMsg.textContent = "✅ Envoi effectué (mode Google Form).";
+}
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
+// Retour au comportement initial: confirmation conservée après rechargement
+sessionStorage.setItem("questionnaire_sent_ok", "1");
 window.location.reload();
 }catch(err){
 resultMsg.style.color = "#d11c1c";
 resultMsg.textContent = "⚠️ Erreur d’envoi. Vérifiez votre connexion et réessayez.";
+} finally {
+submitBtn.disabled = false;
+submitBtn.textContent = "📤 Envoyer le questionnaire";
 }
 });
 
@@ -1616,9 +1695,8 @@ if (sessionStorage.getItem(SENT_FLAG) === "1") {
   sessionStorage.removeItem(SENT_FLAG);
   resultMsg.style.color = "#0a7f2e";
   resultMsg.textContent = "✅ Votre questionnaire a bien été envoyé.";
-  // Scroll vers le message (optionnel)
   resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
 }
-  
+
 updateProgress();
 });
