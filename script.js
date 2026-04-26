@@ -1137,6 +1137,9 @@ const resultMsg = byId("resultMessage");
 const submitBtn = byId("submitBtn");
 const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3sv7z3aDWRJckLz9KMpDnsmg3-4zj-MuCUHzmpfl-u3xFdQ/formResponse";
 const GOOGLE_ENTRY_KEY = "entry.1017475409";
+// Option recommandé : Web App Google Apps Script (collecte complète + structuration Google Sheets)
+// Ex: "https://script.google.com/macros/s/AKfycb.../exec"
+const APPS_SCRIPT_WEBHOOK_URL = "";
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
@@ -1148,6 +1151,7 @@ const buildPayload = () => {
 
     // --- Infos principales (alignées avec ton HTML)
   payload.club = byId("club")?.value.trim() || "";
+  payload.submission_id = `SUB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
   payload.niveau = (document.querySelector("input[name='niveau']:checked") || {}).value || "";
 
@@ -1521,6 +1525,18 @@ const buildGooglePayloadString = (payload) => {
   return asString;
 };
 
+const postToAppsScript = async (payload) => {
+  if (!APPS_SCRIPT_WEBHOOK_URL) return { used: false, ok: false };
+
+  const res = await fetch(APPS_SCRIPT_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+
+  return { used: true, ok: res.ok };
+};
+
 const validateDetailed = () => {
   const errors = [];
   const add = (el, message) => errors.push({ el, message });
@@ -1609,6 +1625,23 @@ try {
   console.error(err);
   return;
 }
+try{
+const appScriptResult = await postToAppsScript(payload);
+
+if (!appScriptResult.used) {
+  // Fallback Google Form (mode dégradé si Apps Script non configuré)
+  const payloadString = buildGooglePayloadString(payload);
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, payloadString);
+  await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+}
+
+resultMsg.style.color = "#0a7f2e";
+resultMsg.textContent = appScriptResult.used
+  ? "✅ Envoi complet vers Google Sheets effectué."
+  : "✅ Envoi effectué (mode Google Form).";
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
 const payloadString = buildGooglePayloadString(payload);
 const fd = new FormData();
 fd.append(GOOGLE_ENTRY_KEY, payloadString);
