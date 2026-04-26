@@ -1492,6 +1492,35 @@ const buildPayload = () => {
   return payload;
 };
 
+const buildGooglePayloadString = (payload) => {
+  // Évite les doublons très volumineux pour rester compatible avec un champ Google Forms.
+  const compact = {
+    club: payload.club || "",
+    niveau: payload.niveau || "",
+    preparateur: payload.preparateur || {},
+    kine: payload.kine || {},
+    zones: payload.zones || [],
+    synthese_lisible: payload.synthese_lisible || [],
+    globaux: payload.globaux || {},
+    barrieres: payload.barrieres || [],
+    barrieres_autre: payload.barrieres_autre || "",
+    raisons: payload.raisons || [],
+    raisons_autre: payload.raisons_autre || "",
+    envoye_le: new Date().toISOString()
+  };
+
+  let asString = JSON.stringify(compact);
+
+  // Garde-fou : si c'est encore trop long, on réduit la synthèse.
+  if (asString.length > 3500) {
+    const syntheseTxt = (compact.synthese_lisible || []).join(" | ");
+    compact.synthese_lisible = [`TRONQUE (${syntheseTxt.length} chars): ${syntheseTxt.slice(0, 1200)}`];
+    asString = JSON.stringify(compact);
+  }
+
+  return asString;
+};
+
 const validateDetailed = () => {
   const errors = [];
   const add = (el, message) => errors.push({ el, message });
@@ -1580,8 +1609,9 @@ try {
   console.error(err);
   return;
 }
+const payloadString = buildGooglePayloadString(payload);
 const fd = new FormData();
-fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
+fd.append(GOOGLE_ENTRY_KEY, payloadString);
 
 try{
 await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
