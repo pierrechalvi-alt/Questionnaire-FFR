@@ -1529,12 +1529,18 @@ const buildGooglePayloadString = (payload) => {
 const postToAppsScript = async (payload) => {
   if (!APPS_SCRIPT_WEBHOOK_URL) return { used: false, ok: false };
 
+  await fetch(APPS_SCRIPT_WEBHOOK_URL, {
+    method: "POST",
+    // Apps Script Web App est cross-origin : no-cors évite les blocages CORS côté navigateur.
+    mode: "no-cors",
   const res = await fetch(APPS_SCRIPT_WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
   });
 
+  // En no-cors, la réponse est opaque: on ne peut pas lire le status HTTP.
+  return { used: true, ok: true };
   return { used: true, ok: res.ok };
 };
 
@@ -1626,6 +1632,38 @@ try {
   console.error(err);
   return;
 }
+try{
+let appScriptResult = { used: false, ok: false };
+let appScriptError = null;
+
+// On tente d'abord Apps Script, mais on bascule automatiquement sur Google Form en cas d'échec.
+try {
+  appScriptResult = await postToAppsScript(payload);
+} catch (err) {
+  appScriptError = err;
+}
+
+if (!appScriptResult.used) {
+  // Fallback Google Form (si Apps Script non configuré ou indisponible)
+  const payloadString = buildGooglePayloadString(payload);
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, payloadString);
+  await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+}
+
+resultMsg.style.color = "#0a7f2e";
+if (appScriptResult.used) {
+  resultMsg.textContent = "✅ Envoi effectué vers Google Sheets.";
+} else if (appScriptError) {
+  resultMsg.textContent = "✅ Envoi effectué (mode Google Form de secours).";
+} else {
+  resultMsg.textContent = "✅ Envoi effectué (mode Google Form).";
+}
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
+// Retour au comportement initial: confirmation conservée après rechargement
+sessionStorage.setItem("questionnaire_sent_ok", "1");
+window.location.reload();
 try{
 const appScriptResult = await postToAppsScript(payload);
 if (appScriptResult.used && !appScriptResult.ok) {
