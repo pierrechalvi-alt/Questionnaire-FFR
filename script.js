@@ -1642,6 +1642,16 @@ resultMsg.textContent = appScriptResult.used
   : "✅ Envoi effectué (mode Google Form).";
 resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
 
+const payloadString = buildGooglePayloadString(payload);
+const fd = new FormData();
+fd.append(GOOGLE_ENTRY_KEY, payloadString);
+
+try{
+await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+resultMsg.style.color = "#0a7f2e";
+resultMsg.textContent = "✅ Votre questionnaire a bien été envoyé.";
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
 // Réinitialisation locale (sans rechargement de page)
 form.reset();
 zoneContainer.innerHTML = "";
