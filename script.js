@@ -1057,7 +1057,7 @@ const hasAnyReturnToPlaySelected = () => (
   !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
 );
 
-const toggleCombatBlock = () => {
+function toggleCombatBlock() {
 const anyReturn = hasAnyReturnToPlaySelected();
 if (anyReturn) {
 if (!combatBlock) {
@@ -1067,9 +1067,9 @@ globalBlocks.appendChild(combatBlock);
 } else {
 if (combatBlock) { combatBlock.remove(); combatBlock=null; }
 }
-};
+}
 
-const toggleGlobalsBlock = () => {
+function toggleGlobalsBlock() {
 const zones = selectedZones();
 const hasLower = zones.some(z=>lowerBody.includes(z));
 const hasHead = zones.some(z=>headNeck.includes(z));
@@ -1100,7 +1100,7 @@ if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendC
 } else if (globalMSBlock) { globalMSBlock.remove(); globalMSBlock=null; }
 // Combat
 toggleCombatBlock();
-};
+}
   
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
