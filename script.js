@@ -154,6 +154,9 @@ const zonesCbs = $$("#zones input[type='checkbox']");
 const globalsSection = byId("globalsSection");
 const globalBlocks = byId("globalBlocks");
 let jumpsBlock, courseBlock, globalMIBlock, globalMSBlock, combatBlock;
+const globalsSection = byId("globalsSection");
+const globalBlocks = byId("globalBlocks");
+let jumpsBlock, courseBlock, globalMIBlock, globalMSBlock, combatBlock;
 
 /* ---------------------------------------------
 * Utilitaires d’UI
@@ -765,10 +768,6 @@ return div;
 };
 
 /* ---------------------------------------------
-* Zones: logique de sélection + fusion Tête/Rachis
-* ------------------------------------------- */
-const selectedZones = () => zonesCbs.filter(z=>z.checked).map(z=>z.value);
-const getLogicalZones = () => {
 const sel = selectedZones();
 const set = new Set(sel);
 if (sel.some(z=>headNeck.includes(z))) set.add(headNeckTitle);
@@ -1140,6 +1139,10 @@ const GOOGLE_ENTRY_KEY = "entry.1017475409";
 // Option recommandé : Web App Google Apps Script (collecte complète + structuration Google Sheets)
 // Ex: "https://script.google.com/macros/s/AKfycb.../exec"
 const APPS_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwz1j-YwMJnm2inJx8g1TJ624GmJVFagR54gLlyZaxvDxBVsa4oX8WEP7-bHia_Yu-7/exec";
+  payload.submission_id = `SUB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+// Option recommandé : Web App Google Apps Script (collecte complète + structuration Google Sheets)
+// Ex: "https://script.google.com/macros/s/AKfycb.../exec"
+const APPS_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwz1j-YwMJnm2inJx8g1TJ624GmJVFagR54gLlyZaxvDxBVsa4oX8WEP7-bHia_Yu-7/exec";
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
@@ -1468,6 +1471,50 @@ const buildPayload = () => {
 
   payload.globaux = gb;
 
+const buildGooglePayloadString = (payload) => {
+  // Évite les doublons très volumineux pour rester compatible avec un champ Google Forms.
+  const compact = {
+    club: payload.club || "",
+    niveau: payload.niveau || "",
+    preparateur: payload.preparateur || {},
+    kine: payload.kine || {},
+    zones: payload.zones || [],
+    synthese_lisible: payload.synthese_lisible || [],
+    globaux: payload.globaux || {},
+    barrieres: payload.barrieres || [],
+    barrieres_autre: payload.barrieres_autre || "",
+    raisons: payload.raisons || [],
+    raisons_autre: payload.raisons_autre || "",
+    envoye_le: new Date().toISOString()
+  };
+
+  let asString = JSON.stringify(compact);
+
+  // Garde-fou : si c'est encore trop long, on réduit la synthèse.
+  if (asString.length > 3500) {
+    const syntheseTxt = (compact.synthese_lisible || []).join(" | ");
+    compact.synthese_lisible = [`TRONQUE (${syntheseTxt.length} chars): ${syntheseTxt.slice(0, 1200)}`];
+    asString = JSON.stringify(compact);
+  }
+
+  return asString;
+};
+
+const postToAppsScript = async (payload) => {
+  if (!APPS_SCRIPT_WEBHOOK_URL) return { used: false, ok: false };
+
+  await fetch(APPS_SCRIPT_WEBHOOK_URL, {
+    method: "POST",
+    // Apps Script Web App est cross-origin : no-cors évite les blocages CORS côté navigateur.
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+
+  // En no-cors, la réponse est opaque: on ne peut pas lire le status HTTP.
+  return { used: true, ok: true };
+};
+
   // --- Questions communes
   const bar = byId("barrieres");
   payload.barrieres = listVals(bar.querySelectorAll("input[type='checkbox']:checked"));
@@ -1522,15 +1569,45 @@ const buildGooglePayloadString = (payload) => {
     asString = JSON.stringify(compact);
   }
 
-  return asString;
-};
+submitBtn.disabled = true;
+submitBtn.textContent = "⏳ Envoi en cours...";
+  submitBtn.disabled = false;
+  submitBtn.textContent = "📤 Envoyer le questionnaire";
+  submitBtn.disabled = false;
+  submitBtn.textContent = "📤 Envoyer le questionnaire";
+let appScriptResult = { used: false, ok: false };
+let appScriptError = null;
 
-const postToAppsScript = async (payload) => {
-  if (!APPS_SCRIPT_WEBHOOK_URL) return { used: false, ok: false };
+// On tente d'abord Apps Script, mais on bascule automatiquement sur Google Form en cas d'échec.
+try {
+  appScriptResult = await postToAppsScript(payload);
+} catch (err) {
+  appScriptError = err;
+}
 
-  await fetch(APPS_SCRIPT_WEBHOOK_URL, {
-    method: "POST",
-    // Apps Script Web App est cross-origin : no-cors évite les blocages CORS côté navigateur.
+if (!appScriptResult.used) {
+  // Fallback Google Form (si Apps Script non configuré ou indisponible)
+  const payloadString = buildGooglePayloadString(payload);
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, payloadString);
+  await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+}
+resultMsg.style.color = "#0a7f2e";
+if (appScriptResult.used) {
+  resultMsg.textContent = "✅ Envoi effectué vers Google Sheets.";
+} else if (appScriptError) {
+  resultMsg.textContent = "✅ Envoi effectué (mode Google Form de secours).";
+} else {
+  resultMsg.textContent = "✅ Envoi effectué (mode Google Form).";
+}
+resultMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+
+// Retour au comportement initial: confirmation conservée après rechargement
+sessionStorage.setItem("questionnaire_sent_ok", "1");
+} finally {
+submitBtn.disabled = false;
+submitBtn.textContent = "📤 Envoyer le questionnaire";
+
     mode: "no-cors",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
