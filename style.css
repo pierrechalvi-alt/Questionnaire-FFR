@@ -1,4 +1,4 @@
-/* V21 – Style global (stabilisé) */
+/* V21 â€“ Style global (stabilisÃ©) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
 :root{
@@ -109,7 +109,7 @@ input[type="text"]{
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
 .req{color:#d11c1c}
 
-/* --- BARRE DE PROGRESSION (sobre, inchangée côté JS) --- */
+/* --- BARRE DE PROGRESSION (sobre, inchangÃ©e cÃ´tÃ© JS) --- */
 #progress-container{
   height:22px;
   background:#e4e8ee;
@@ -152,7 +152,7 @@ button:hover{
   transform:translateY(-1px);
 }
 
-/* --- EFFETS GÉNÉRAUX --- */
+/* --- EFFETS GÃ‰NÃ‰RAUX --- */
 .fade-in{opacity:0;transform:translateY(12px);animation:fade .5s ease forwards}
 @keyframes fade{to{opacity:1;transform:none}}
 
@@ -161,7 +161,7 @@ button:hover{
   border-radius:8px;
   padding:16px;
   margin:12px 0;
-  overflow:visible; /* éviter tout clipping interne */
+  overflow:visible; /* Ã©viter tout clipping interne */
 }
 .subcard.active{
   box-shadow:0 0 12px rgba(0,102,204,.18);
@@ -169,8 +169,8 @@ button:hover{
   background:rgba(0,102,204,.03);
 }
 
-/* --- ANIMATION D’OUVERTURE / FERMETURE --- */
-/* Valeurs compatibles avec ta logique .slide/.show côté JS */
+/* --- ANIMATION Dâ€™OUVERTURE / FERMETURE --- */
+/* Valeurs compatibles avec ta logique .slide/.show cÃ´tÃ© JS */
 .slide{
   overflow:hidden;
   transition:max-height .35s ease, opacity .35s ease;
@@ -178,13 +178,13 @@ button:hover{
   opacity:0;
 }
 .slide.show{
-  /* Très grand max-height pour ne jamais couper les gros blocs (Cheville/Pied...) */
+  /* TrÃ¨s grand max-height pour ne jamais couper les gros blocs (Cheville/Pied...) */
   max-height:50000px !important;
   opacity:1;
   overflow:visible;
 }
 
-/* --- GARANTIR L’AFFICHAGE COMPLET DES LONGS BLOCS --- */
+/* --- GARANTIR Lâ€™AFFICHAGE COMPLET DES LONGS BLOCS --- */
 .force-details,
 .mob-details,
 .knee-muscles,
@@ -208,7 +208,7 @@ footer{
 @media(max-width:720px){
   .grid-2{grid-template-columns:1fr}
 }
-/* === ✅ Correction finale Oui/Non (blocs conditionnels) === */
+/* === âœ… Correction finale Oui/Non (blocs conditionnels) === */
 
 /* Les conteneurs ne doivent pas couper les sections "slide" */
 .card,
@@ -216,7 +216,7 @@ footer{
   overflow: visible !important;
 }
 
-/* Animation d’ouverture/fermeture des blocs Oui/Non */
+/* Animation dâ€™ouverture/fermeture des blocs Oui/Non */
 .slide {
   overflow: hidden;
   max-height: 0;
@@ -230,7 +230,7 @@ footer{
   overflow: visible;
 }
 
-/* ===== Validation localisée ===== */
+/* ===== Validation localisÃ©e ===== */
 .has-error {
   border-left: 4px solid #d11c1c;
   padding-left: 12px;
