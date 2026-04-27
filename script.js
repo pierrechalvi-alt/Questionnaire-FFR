@@ -151,6 +151,9 @@ const isokineticModes = ["Concentrique","Excentrique"];
 * ------------------------------------------- */
 const zoneContainer = byId("zoneQuestions");
 const zonesCbs = $$("#zones input[type='checkbox']");
+const globalsSection = byId("globalsSection");
+const globalBlocks = byId("globalBlocks");
+let jumpsBlock, courseBlock, globalMIBlock, globalMSBlock, combatBlock;
 
 /* ---------------------------------------------
 * Utilitaires d’UI
@@ -787,10 +790,6 @@ toggleGlobalsBlock();
 /* ---------------------------------------------
 * BLOCS TRANSVERSAUX
 * ------------------------------------------- */
-const globalsSection = byId("globalsSection");
-const globalBlocks = byId("globalBlocks");
-let jumpsBlock, courseBlock, globalMIBlock, globalMSBlock, combatBlock;
-
 const buildJumpsBlock = () => {
 const d = document.createElement("div");
 d.className = "subcard";
