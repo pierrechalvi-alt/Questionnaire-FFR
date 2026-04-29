@@ -144,7 +144,7 @@ const testsByMuscle = {
 
 // Isocinétisme
 const isokineticSpeeds = ["30°/s","60°/s","120°/s","180°/s","Autre"];
-const isokineticModes = ["Concentrique","Excentrique"];
+const isokineticModes = ["Concentrique","Excentrique","Isométrique"];
 
 /* ---------------------------------------------
 * Zones & conteneurs
@@ -221,6 +221,30 @@ ensureFreq();
 };
 
 // ---- Isocinétisme: sous-questions standardisées
+
+const attachMomentsOnYes = (rootEl, radioName, detailSelector) => {
+  const radios = rootEl.querySelectorAll(`input[name='${radioName}']`);
+  const detail = rootEl.querySelector(detailSelector);
+  const ensureMoments = () => {
+    const yesChecked = !!rootEl.querySelector(`input[name='${radioName}'][value='Oui']:checked`);
+    if (!detail) return;
+    let holder = detail.querySelector(":scope > .conditional-moment");
+    if (yesChecked) {
+      if (!holder) {
+        holder = document.createElement("div");
+        holder.className = "conditional-moment";
+        holder.innerHTML = getMomentSelectorHtml();
+        detail.insertAdjacentElement("afterbegin", holder);
+        initMomentGroup(holder);
+      }
+    } else if (holder) {
+      holder.remove();
+    }
+  };
+  radios.forEach(r => r.addEventListener("change", ensureMoments));
+  ensureMoments();
+};
+
 const attachIsokineticHandlers = (scope) => {
 const groups = scope.querySelectorAll(".tools-group");
 groups.forEach(g => {
@@ -330,6 +354,7 @@ if (block){
 block.classList.add("slide","show");
 subQ.appendChild(block);
 initMomentGroup(block);
+ensureAutreForSubItems(block);
 }
 } else if (exists) {
 exists.classList.remove("show");
@@ -607,6 +632,7 @@ const moves = [];
 moves.push("Flexion/Extension");
 if (!["Genou","Cheville / Pied","Coude","Poignet / Main"].includes(zoneName)) moves.push("Rotations");
 if (["Épaule","Hanche"].includes(zoneName)) moves.push("Adduction/Abduction");
+if (zoneName==="Coude") moves.push("Prono/Supination");
 if (zoneName==="Cheville / Pied") moves.push("Éversion/Inversion");
 if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) moves.push("Inclinaisons");
 if (zoneName==="Poignet / Main") moves.push("Inclinaison");
@@ -848,6 +874,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+attachMomentsOnYes(d, "jumps-yn", "#jumps-detail");
 return d;
 };
 
@@ -934,6 +961,7 @@ dDet.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+attachMomentsOnYes(d, "course-yn", "#course-detail");
 return d;
 };
 
@@ -984,6 +1012,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+attachMomentsOnYes(d, "mi-yn", "#mi-detail");
 return d;
 };
 
@@ -1035,6 +1064,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+attachMomentsOnYes(d, "ms-yn", "#ms-detail");
 return d;
 };
 
@@ -1049,59 +1079,37 @@ d.innerHTML = `
 <label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="combat-yn" value="Non"> Non</label>
 </div>
+<div class="slide" id="combat-detail"></div>
 `;
+const yn = d.querySelectorAll("input[name='combat-yn']");
+const det = d.querySelector("#combat-detail");
+yn.forEach(r=>r.addEventListener("change",()=>{
+det.classList.toggle("show", r.value==="Oui" && r.checked);
+}));
+attachMomentsOnYes(d, "combat-yn", "#combat-detail");
 return d;
 };
 
-const hasAnyReturnToPlaySelected = () => (
-  !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
-);
-
 const toggleCombatBlock = () => {
-const anyReturn = hasAnyReturnToPlaySelected();
-if (anyReturn) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
 }
-} else {
-if (combatBlock) { combatBlock.remove(); combatBlock=null; }
-}
 };
 
 const toggleGlobalsBlock = () => {
-const zones = selectedZones();
-const hasLower = zones.some(z=>lowerBody.includes(z));
-const hasHead = zones.some(z=>headNeck.includes(z));
-const logical = getLogicalZones();
-const any = logical.length>0;
-globalsSection.style.display = any ? "" : "none";
-if (!any) {
-globalBlocks.innerHTML = "";
-jumpsBlock = courseBlock = globalMIBlock = globalMSBlock = combatBlock = null;
-return;
-}
-// Sauts: si MI cochée
-if (hasLower) {
-if (!jumpsBlock) { jumpsBlock = buildJumpsBlock(); globalBlocks.appendChild(jumpsBlock); }
-} else if (jumpsBlock) { jumpsBlock.remove(); jumpsBlock=null; }
-// Course: si MI ou tête/rachis cochés
-if (hasLower || hasHead) {
-if (!courseBlock) { courseBlock = buildCourseBlock(); globalBlocks.appendChild(courseBlock); }
-} else if (courseBlock) { courseBlock.remove(); courseBlock=null; }
-// Globaux MI: si MI cochée
-if (hasLower) {
-if (!globalMIBlock) { globalMIBlock = buildGlobalMIBlock(); globalBlocks.appendChild(globalMIBlock); }
-} else if (globalMIBlock) { globalMIBlock.remove(); globalMIBlock=null; }
-// Globaux MS: si MS cochée
-const hasUpper = zones.some(z=>["Épaule","Coude","Poignet / Main"].includes(z));
-if (hasUpper) {
-if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendChild(globalMSBlock); }
-} else if (globalMSBlock) { globalMSBlock.remove(); globalMSBlock=null; }
-// Combat
-toggleCombatBlock();
+  globalsSection.style.display = "";
+
+  if (!jumpsBlock) { jumpsBlock = buildJumpsBlock(); globalBlocks.appendChild(jumpsBlock); ensureAutreForSubItems(jumpsBlock); }
+  if (!courseBlock) { courseBlock = buildCourseBlock(); globalBlocks.appendChild(courseBlock); ensureAutreForSubItems(courseBlock); }
+  if (!globalMIBlock) { globalMIBlock = buildGlobalMIBlock(); globalBlocks.appendChild(globalMIBlock); ensureAutreForSubItems(globalMIBlock); }
+  if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendChild(globalMSBlock); ensureAutreForSubItems(globalMSBlock); }
+
+  toggleCombatBlock();
 };
   
+toggleGlobalsBlock();
+
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
 * ------------------------------------------- */
@@ -1140,6 +1148,24 @@ const GOOGLE_ENTRY_KEY = "entry.1017475409";
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
+
+
+const ensureAutreForSubItems = (scope) => {
+  if (!scope) return;
+  scope.querySelectorAll("label").forEach(lbl => {
+    const t = lbl.textContent?.trim();
+    if (!["Outils", "Outils utilisés", "Paramètres étudiés", "Critères d’évaluation", "Quels tests ?", "Tests spécifiques"].includes(t)) return;
+    const group = lbl.nextElementSibling;
+    if (!group || !group.classList.contains("checkbox-group")) return;
+    const hasAutre = !!group.querySelector("input[type='checkbox'][value='Autre']");
+    if (!hasAutre) {
+      const lab = document.createElement("label");
+      lab.innerHTML = `<input type="checkbox" value="Autre"> Autre`;
+      group.appendChild(lab);
+    }
+    ensureOtherText(group);
+  });
+};
 
 const buildPayload = () => {
   const listVals = (nodeList) => [...nodeList].map(i => i.value);
