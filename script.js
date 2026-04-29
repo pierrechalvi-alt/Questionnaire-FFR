@@ -57,7 +57,7 @@ const formCards = $$(".card");
 const updateProgress = () => {
   const filled = formCards.filter(sec =>
     sec.querySelector("input:checked") ||
-[...sec.querySelectorAll("input[type='text']")].some(i => i.value.trim() !== "")
+    [...sec.querySelectorAll("input[type='text'], textarea, select")].some(i => (i.value || "").trim() !== "")
   ).length;
 
   const total = formCards.length;
@@ -71,8 +71,9 @@ const updateProgress = () => {
   if (progressText) progressText.textContent = `Progression : ${pct}%`;
 };
 
-// Déclenchement à chaque changement
+// Déclenchement à chaque changement/saisie
 document.addEventListener("change", updateProgress);
+document.addEventListener("input", updateProgress);
 
 /* ---------------------------------------------
 * Rôle / Équipe : champs "Autre"
@@ -90,6 +91,7 @@ const toggleOther = (name, inputId) => {
     if (e.target.value !== "Autre") input.style.display = "none";
   }));
 };
+// Champs optionnels conservés si présents dans le formulaire
 toggleOther("role", "role-autre");
 toggleOther("equipe", "equipe-autre");
 
