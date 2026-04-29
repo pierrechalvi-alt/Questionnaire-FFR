@@ -804,7 +804,7 @@ d.innerHTML = `
 <h3>Tests de sauts</h3>
 <label>Effectuez-vous des tests de sauts ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="jumps-yn" value="Oui"> Oui</label>
+<label><input type="radio" name="jumps-yn" value="Oui" checked> Oui</label>
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="jumps-detail">
@@ -854,6 +854,7 @@ initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
+det.classList.add("show");
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 return d;
 };
@@ -866,7 +867,7 @@ d.innerHTML = `
 <h3>Tests de course</h3>
 <label>Effectuez-vous des tests de course ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="course-yn" value="Oui"> Oui</label>
+<label><input type="radio" name="course-yn" value="Oui" checked> Oui</label>
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="course-detail">
@@ -934,6 +935,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 toggleCombatBlock();
 }));
+det.classList.add("show");
 
 // Décélération toggle
 const dYN = d.querySelectorAll("input[name='decel-yn']");
@@ -954,7 +956,7 @@ d.innerHTML = `
 <h3>Tests fonctionnels globaux – Membre inférieur</h3>
 <label>Effectuez-vous des tests fonctionnels globaux du membre inférieur ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="mi-yn" value="Oui"> Oui</label>
+<label><input type="radio" name="mi-yn" value="Oui" checked> Oui</label>
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="mi-detail">
@@ -994,6 +996,7 @@ initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
+det.classList.add("show");
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 return d;
 };
@@ -1006,7 +1009,7 @@ d.innerHTML = `
 <h3>Tests fonctionnels globaux – Membre supérieur</h3>
 <label>Effectuez-vous des tests fonctionnels globaux du membre supérieur ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="ms-yn" value="Oui"> Oui</label>
+<label><input type="radio" name="ms-yn" value="Oui" checked> Oui</label>
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="ms-detail">
@@ -1047,6 +1050,7 @@ initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
+det.classList.add("show");
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 return d;
 };
@@ -1059,7 +1063,7 @@ d.innerHTML = `
 <h3>Tests spécifiques de combat</h3>
 <label>Effectuez-vous des tests spécifiques de combat ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
+<label><input type="radio" name="combat-yn" value="Oui" checked> Oui</label>
 <label><input type="radio" name="combat-yn" value="Non"> Non</label>
 </div>
 `;
