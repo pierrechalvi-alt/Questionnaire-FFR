@@ -1061,8 +1061,14 @@ d.innerHTML = `
 <label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="combat-yn" value="Non"> Non</label>
 </div>
-<div class="slide show" id="combat-detail"></div>
+<div class="slide" id="combat-detail"></div>
 `;
+const yn = d.querySelectorAll("input[name='combat-yn']");
+const det = d.querySelector("#combat-detail");
+yn.forEach(r=>r.addEventListener("change",()=>{
+det.classList.toggle("show", r.value==="Oui" && r.checked);
+}));
+attachMomentsOnYes(d, "combat-yn", "#combat-detail");
 return d;
 };
 
@@ -1085,7 +1091,6 @@ const toggleGlobalsBlock = () => {
 };
   
 toggleGlobalsBlock();
-ensureAutreForSubItems(document);
 
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
@@ -1131,34 +1136,16 @@ const ensureAutreForSubItems = (scope) => {
   if (!scope) return;
   scope.querySelectorAll("label").forEach(lbl => {
     const t = lbl.textContent?.trim();
+    if (!["Outils", "Outils utilisés", "Paramètres étudiés", "Critères d’évaluation", "Quels tests ?", "Tests spécifiques"].includes(t)) return;
     const group = lbl.nextElementSibling;
     if (!group || !group.classList.contains("checkbox-group")) return;
-
-    if (["Outils", "Outils utilisés", "Paramètres étudiés", "Paramètres", "Paramètres étudiés", "Quels tests ?", "Tests spécifiques"].includes(t)) {
-      const hasAutre = !!group.querySelector("input[type='checkbox'][value='Autre']");
-      if (!hasAutre) {
-        const lab = document.createElement("label");
-        lab.innerHTML = `<input type="checkbox" value="Autre"> Autre`;
-        group.appendChild(lab);
-      }
-      ensureOtherText(group);
+    const hasAutre = !!group.querySelector("input[type='checkbox'][value='Autre']");
+    if (!hasAutre) {
+      const lab = document.createElement("label");
+      lab.innerHTML = `<input type="checkbox" value="Autre"> Autre`;
+      group.appendChild(lab);
     }
-
-    if (t === "Critères d’évaluation") {
-      const hasNormative = [...group.querySelectorAll("input[type='checkbox']")].some(i => i.value === "Valeur normative");
-      if (!hasNormative) {
-        const lab = document.createElement("label");
-        lab.innerHTML = `<input type="checkbox" value="Valeur normative"> Valeur normative`;
-        group.insertAdjacentElement("afterbegin", lab);
-      }
-      const hasAutre = !!group.querySelector("input[type='checkbox'][value='Autre']");
-      if (!hasAutre) {
-        const lab = document.createElement("label");
-        lab.innerHTML = `<input type="checkbox" value="Autre"> Autre`;
-        group.appendChild(lab);
-      }
-      ensureOtherText(group);
-    }
+    ensureOtherText(group);
   });
 };
 
