@@ -808,6 +808,7 @@ d.innerHTML = `
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="jumps-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests de sauts utilisez-vous ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="CMJ (Countermovement Jump)"> CMJ (Countermovement Jump)</label>
@@ -849,6 +850,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='jumps-yn']");
 const det = d.querySelector("#jumps-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
@@ -868,6 +870,7 @@ d.innerHTML = `
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="course-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests de course utilisez-vous ?</label>
 
 <h4 class="subtle">Énergétiques</h4>
@@ -926,6 +929,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='course-yn']");
 const det = d.querySelector("#course-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 toggleCombatBlock();
@@ -954,6 +958,7 @@ d.innerHTML = `
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="mi-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Squat"> Squat</label>
@@ -985,6 +990,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='mi-yn']");
 const det = d.querySelector("#mi-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
@@ -1004,6 +1010,7 @@ d.innerHTML = `
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="ms-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
@@ -1036,6 +1043,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='ms-yn']");
 const det = d.querySelector("#ms-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
@@ -1062,9 +1070,14 @@ const hasAnyReturnToPlaySelected = () => (
   !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
 );
 
+const hasCourseTestsEnabled = () => (
+  !!document.querySelector("input[name='course-yn'][value='Oui']:checked")
+);
+
 const toggleCombatBlock = () => {
 const anyReturn = hasAnyReturnToPlaySelected();
-if (anyReturn) {
+const courseEnabled = hasCourseTestsEnabled();
+if (anyReturn || courseEnabled) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
