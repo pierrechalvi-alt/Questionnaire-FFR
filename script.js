@@ -211,6 +211,7 @@ wrap.remove();
 }
 toggleCombatBlock();
 toggleGlobalsBlock();
+ensureAutreForSubItems(document);
 };
 
 autreFreq.addEventListener("change", ensureFreq);
@@ -369,6 +370,7 @@ const removeZoneSection = (zoneName) => {
 const el = byId(`section-${slug(zoneName)}`);
 if (el) el.remove();
 toggleGlobalsBlock();
+ensureAutreForSubItems(document);
 };
 
 /* ---------------------------------------------
@@ -807,6 +809,7 @@ if (anyHN) createZoneSection(headNeckTitle); else removeZoneSection(headNeckTitl
 if (cb.checked) createZoneSection(cb.value); else removeZoneSection(cb.value);
 }
 toggleGlobalsBlock();
+ensureAutreForSubItems(document);
 });
 });
 
@@ -828,7 +831,7 @@ d.innerHTML = `
 <label><input type="radio" name="jumps-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
-<div class="slide" id="jumps-detail">
+<div class="slide show" id="jumps-detail">
 <label>Quels tests de sauts utilisez-vous ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="CMJ (Countermovement Jump)"> CMJ (Countermovement Jump)</label>
@@ -868,11 +871,6 @@ d.innerHTML = `
 </div>
 </div>
 `;
-const yn = d.querySelectorAll("input[name='jumps-yn']");
-const det = d.querySelector("#jumps-detail");
-yn.forEach(r=>r.addEventListener("change",()=>{
-det.classList.toggle("show", r.value==="Oui" && r.checked);
-}));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 attachMomentsOnYes(d, "jumps-yn", "#jumps-detail");
 return d;
@@ -889,7 +887,7 @@ d.innerHTML = `
 <label><input type="radio" name="course-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
-<div class="slide" id="course-detail">
+<div class="slide show" id="course-detail">
 <label>Quels tests de course utilisez-vous ?</label>
 
 <h4 class="subtle">Énergétiques</h4>
@@ -946,12 +944,6 @@ d.innerHTML = `
 </div>
 </div>
 `;
-const yn = d.querySelectorAll("input[name='course-yn']");
-const det = d.querySelector("#course-detail");
-yn.forEach(r=>r.addEventListener("change",()=>{
-det.classList.toggle("show", r.value==="Oui" && r.checked);
-toggleCombatBlock();
-}));
 
 // Décélération toggle
 const dYN = d.querySelectorAll("input[name='decel-yn']");
@@ -976,7 +968,7 @@ d.innerHTML = `
 <label><input type="radio" name="mi-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
-<div class="slide" id="mi-detail">
+<div class="slide show" id="mi-detail">
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Squat"> Squat</label>
@@ -1006,11 +998,6 @@ d.innerHTML = `
 </div>
 </div>
 `;
-const yn = d.querySelectorAll("input[name='mi-yn']");
-const det = d.querySelector("#mi-detail");
-yn.forEach(r=>r.addEventListener("change",()=>{
-det.classList.toggle("show", r.value==="Oui" && r.checked);
-}));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 attachMomentsOnYes(d, "mi-yn", "#mi-detail");
 return d;
@@ -1027,7 +1014,7 @@ d.innerHTML = `
 <label><input type="radio" name="ms-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
-<div class="slide" id="ms-detail">
+<div class="slide show" id="ms-detail">
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
@@ -1058,11 +1045,6 @@ d.innerHTML = `
 </div>
 </div>
 `;
-const yn = d.querySelectorAll("input[name='ms-yn']");
-const det = d.querySelector("#ms-detail");
-yn.forEach(r=>r.addEventListener("change",()=>{
-det.classList.toggle("show", r.value==="Oui" && r.checked);
-}));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 attachMomentsOnYes(d, "ms-yn", "#ms-detail");
 return d;
