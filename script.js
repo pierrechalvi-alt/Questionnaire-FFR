@@ -110,7 +110,7 @@ const toolsMobBase = ["Goniomètre","Inclinomètre","Autre"];
 
 // Paramètres + critères – Force
 const paramsForce = ["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)","RFD (Rate of Force Development)","Angle du pic de force (°)","Endurance (s)"];
-const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Autre"];
+const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Valeurs normatives","Autre"];
 
 // Proprio / questionnaires
 const proprioByZone = {
@@ -124,14 +124,14 @@ const proprioByZone = {
 "Coude":[]
 };
 const questionnairesByZone = {
-"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","Autre"],
-"Hanche":["HAGOS","iHOT-12","HOOS","HOS","Autre"],
-"Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Autre"],
-"Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Autre"],
-"Poignet / Main":["PRWE","DASH","QuickDASH","Boston Carpal Tunnel","Autre"],
-"Cheville / Pied":["CAIT","FAAM-ADL","FAAM-Sport","FAOS","FFI","Autre"],
-"Rachis lombaire":["ODI (Oswestry)","Roland-Morris","Quebec Back Pain","FABQ","Autre"],
-[headNeckTitle]:["SCAT6","Neck Disability Index (NDI)","Copenhagen Neck Functional Scale","Autre"]
+"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","VISA-P","VISA-A","Questionnaire de confiance global","Autre"],
+"Hanche":["HAGOS","iHOT-12","HOOS","HOS","Questionnaire de confiance global","Autre"],
+"Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Questionnaire de confiance global","Autre"],
+"Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Questionnaire de confiance global","Autre"],
+"Poignet / Main":["PRWE","DASH","QuickDASH","Boston Carpal Tunnel","Questionnaire de confiance global","Autre"],
+"Cheville / Pied":["CAIT","FAAM-ADL","FAAM-Sport","FAOS","FFI","Questionnaire de confiance global","Autre"],
+"Rachis lombaire":["ODI (Oswestry)","Roland-Morris","Quebec Back Pain","FABQ","Questionnaire de confiance global","Autre"],
+[headNeckTitle]:["SCAT6","Neck Disability Index (NDI)","Copenhagen Neck Functional Scale","Questionnaire de confiance global","Autre"]
 };
 
 // Tests musculaires + spécifiques
@@ -146,7 +146,7 @@ const testsByMuscle = {
 
 // Isocinétisme
 const isokineticSpeeds = ["30°/s","60°/s","120°/s","180°/s","Autre"];
-const isokineticModes = ["Concentrique","Excentrique"];
+const isokineticModes = ["Concentrique","Excentrique","Isométrique"];
 
 /* ---------------------------------------------
 * Zones & conteneurs
@@ -555,7 +555,7 @@ ${["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)
 </div>
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
-${["Comparaison droite/gauche","Valeur de référence individuelle","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
+${["Comparaison droite/gauche","Valeur de référence individuelle","Valeurs normatives","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
 </div>`;
 ensureOtherText(opc.querySelector(".tools-group"));
 ensureOtherText(opc.querySelectorAll(".checkbox-group")[2]);
@@ -580,7 +580,7 @@ extraTools += `<label><input type="checkbox" value="Craniocervical Flexion Test 
 // Critères override pour Tête/Rachis Flex/Ext (pas de DG)
 let criteriaOverride = null;
 if (zoneName===headNeckTitle && mb.value==="Flexion/Extension") {
-criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Autre"];
+criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Valeurs normatives","Autre"];
 }
 
 const opc = createOPC(extraTools,{excludeIsokinetic:false,criteriaOverride});
@@ -612,6 +612,7 @@ if (["Épaule","Hanche"].includes(zoneName)) moves.push("Adduction/Abduction");
 if (zoneName==="Cheville / Pied") moves.push("Éversion/Inversion");
 if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) moves.push("Inclinaisons");
 if (zoneName==="Poignet / Main") moves.push("Inclinaison");
+if (zoneName==="Coude") moves.push("Prono/Supination");
 
 div.innerHTML = `
 <h4>Mobilité – ${zoneName}</h4>
@@ -661,6 +662,7 @@ ${tools.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join(
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeurs normatives"> Valeurs normatives</label>
 ${ (zoneName==="Rachis lombaire" && mb.value==="Flexion/Extension") ? "" : `<label><input type="checkbox" value="Comparaison droite/gauche"> Comparaison droite/gauche</label>` }
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
@@ -695,6 +697,7 @@ ${list.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("
 <div class="checkbox-group">
 <label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeurs normatives"> Valeurs normatives</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
 ensureOtherText(div.querySelector(".proprio-tests"));
