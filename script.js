@@ -1155,6 +1155,19 @@ const resultMsg = byId("resultMessage");
 const submitBtn = byId("submitBtn");
 const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3sv7z3aDWRJckLz9KMpDnsmg3-4zj-MuCUHzmpfl-u3xFdQ/formResponse";
 const GOOGLE_ENTRY_KEY = "entry.1017475409";
+const PENDING_SUBMISSION_KEY = "questionnaire_pending_payload_v1";
+const SENT_SIGNATURES_KEY = "questionnaire_sent_signatures_v1";
+let isSubmitting = false;
+
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
+const generateSubmissionId = () => `SUB-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+const stableStringify = (v) => {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return `[${v.map(stableStringify).join(",")}]`;
+  const keys = Object.keys(v).sort();
+  return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(v[k])}`).join(",")}}`;
+};
+const payloadSignature = (payload) => stableStringify(payload);
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
@@ -1178,6 +1191,8 @@ const buildPayload = () => {
     nom: byId("kine_nom")?.value.trim() || "",
     prenom: byId("kine_prenom")?.value.trim() || ""
   };
+  payload.submission_id = generateSubmissionId();
+  payload.submitted_at_client = new Date().toISOString();
   // --- Zones sélectionnées
   payload.zones = selectedZones();
 
@@ -1387,6 +1402,7 @@ const buildPayload = () => {
   if (jumps) {
     gb.sauts = { fait: gatherRadio(jumps) };
     if (gb.sauts.fait === "Oui") {
+      gb.sauts.moments = gatherChecked(jumps.querySelector("#jumps-detail .type-moment"));
       const groups = jumps.querySelectorAll("#jumps-detail .checkbox-group");
       gb.sauts.tests = listVals(groups[0].querySelectorAll("input:checked"));
       gb.sauts.params = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1407,6 +1423,7 @@ const buildPayload = () => {
   if (course) {
     gb.course = { fait: gatherRadio(course) };
     if (gb.course.fait === "Oui") {
+      gb.course.moments = gatherChecked(course.querySelector("#course-detail .type-moment"));
       const groups = course.querySelectorAll("#course-detail .checkbox-group");
       gb.course.tests_ener = listVals(groups[0].querySelectorAll("input:checked"));
       gb.course.tests_vit = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1431,6 +1448,7 @@ const buildPayload = () => {
   if (mi) {
     gb.mi = { fait: gatherRadio(mi) };
     if (gb.mi.fait === "Oui") {
+      gb.mi.moments = gatherChecked(mi.querySelector("#mi-detail .type-moment"));
       const groups = mi.querySelectorAll("#mi-detail .checkbox-group");
       gb.mi.tests = listVals(groups[0].querySelectorAll("input:checked"));
       gb.mi.outils = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1451,6 +1469,7 @@ const buildPayload = () => {
   if (ms) {
     gb.ms = { fait: gatherRadio(ms) };
     if (gb.ms.fait === "Oui") {
+      gb.ms.moments = gatherChecked(ms.querySelector("#ms-detail .type-moment"));
       const groups = ms.querySelectorAll("#ms-detail .checkbox-group");
       gb.ms.tests = listVals(groups[0].querySelectorAll("input:checked"));
       gb.ms.outils = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1562,8 +1581,32 @@ const validateDetailed = () => {
   return errors;
 };
 
+const postToGoogleForm = async (payload, { retries = 2, timeoutMs = 10000 } = {}) => {
+  const fd = new FormData();
+  fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
+
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      await fetch(GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: fd, signal: controller.signal });
+      clearTimeout(timer);
+      return { ok: true, attempt: attempt + 1 };
+    } catch (err) {
+      clearTimeout(timer);
+      lastError = err;
+      if (attempt < retries) await delay(800 * (attempt + 1));
+    }
+  }
+  return { ok: false, error: lastError };
+};
+
 submitBtn.addEventListener("click", async (e)=>{
 e.preventDefault();
+if (isSubmitting) return;
+isSubmitting = true;
+submitBtn.disabled = true;
 
 clearErrors();
 resultMsg.textContent = "";
@@ -1579,6 +1622,8 @@ if (errors.length) {
   const c = errorContainerFor(first);
   c?.scrollIntoView({ behavior: "smooth", block: "center" });
   first?.focus?.();
+  isSubmitting = false;
+  submitBtn.disabled = false;
 
   return;
 }
@@ -1590,21 +1635,40 @@ try {
   resultMsg.style.color = "#d11c1c";
   resultMsg.textContent = "⚠️ Erreur interne : impossible de construire le questionnaire (console).";
   console.error(err);
+  isSubmitting = false;
+  submitBtn.disabled = false;
   return;
 }
-const fd = new FormData();
-fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
+
+const signature = payloadSignature(payload);
+const sentSigs = JSON.parse(localStorage.getItem(SENT_SIGNATURES_KEY) || "[]");
+if (sentSigs.includes(signature)) {
+  resultMsg.style.color = "#0a7f2e";
+  resultMsg.textContent = "✅ Ce questionnaire a déjà été envoyé.";
+  isSubmitting = false;
+  submitBtn.disabled = false;
+  return;
+}
+
+localStorage.setItem(PENDING_SUBMISSION_KEY, JSON.stringify(payload));
 
 try{
-await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
+const res = await postToGoogleForm(payload, { retries: 2, timeoutMs: 10000 });
+if (!res.ok) throw res.error || new Error("Échec d'envoi");
 // Marqueur pour afficher le message après refresh
 sessionStorage.setItem("questionnaire_sent_ok", "1");
+localStorage.removeItem(PENDING_SUBMISSION_KEY);
+localStorage.setItem(SENT_SIGNATURES_KEY, JSON.stringify([...sentSigs.slice(-19), signature]));
 
 // Recharge la page pour repartir sur un formulaire vierge
 window.location.reload();
 }catch(err){
 resultMsg.style.color = "#d11c1c";
-resultMsg.textContent = "⚠️ Erreur d’envoi. Vérifiez votre connexion et réessayez.";
+resultMsg.textContent = "⚠️ Erreur d’envoi. Vos données sont conservées localement, vous pouvez réessayer.";
+console.error("Erreur envoi questionnaire:", err);
+} finally {
+isSubmitting = false;
+submitBtn.disabled = false;
 }
 });
 
@@ -1630,6 +1694,11 @@ setupCommonAutre("raisons","raisons-autre");
 
 // ===== Message après rechargement (post-envoi) =====
 const SENT_FLAG = "questionnaire_sent_ok";
+const pendingSubmission = localStorage.getItem(PENDING_SUBMISSION_KEY);
+if (pendingSubmission) {
+  resultMsg.style.color = "#b26a00";
+  resultMsg.textContent = "⚠️ Une tentative d’envoi précédente est en attente. Cliquez sur “Envoyer” pour relancer l’envoi.";
+}
 if (sessionStorage.getItem(SENT_FLAG) === "1") {
   sessionStorage.removeItem(SENT_FLAG);
   resultMsg.style.color = "#0a7f2e";
