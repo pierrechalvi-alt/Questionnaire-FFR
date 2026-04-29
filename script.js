@@ -1079,23 +1079,21 @@ d.innerHTML = `
 <label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="combat-yn" value="Non"> Non</label>
 </div>
+<div class="slide" id="combat-detail"></div>
 `;
+const yn = d.querySelectorAll("input[name='combat-yn']");
+const det = d.querySelector("#combat-detail");
+yn.forEach(r=>r.addEventListener("change",()=>{
+det.classList.toggle("show", r.value==="Oui" && r.checked);
+}));
+attachMomentsOnYes(d, "combat-yn", "#combat-detail");
 return d;
 };
 
-const hasAnyReturnToPlaySelected = () => (
-  !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
-);
-
 const toggleCombatBlock = () => {
-const anyReturn = hasAnyReturnToPlaySelected();
-if (anyReturn) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
-}
-} else {
-if (combatBlock) { combatBlock.remove(); combatBlock=null; }
 }
 };
 
@@ -1110,6 +1108,8 @@ const toggleGlobalsBlock = () => {
   toggleCombatBlock();
 };
   
+toggleGlobalsBlock();
+
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
 * ------------------------------------------- */
