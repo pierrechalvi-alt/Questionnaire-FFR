@@ -57,7 +57,7 @@ const formCards = $$(".card");
 const updateProgress = () => {
   const filled = formCards.filter(sec =>
     sec.querySelector("input:checked") ||
-    [...sec.querySelectorAll("input[type='text'], textarea, select")].some(i => (i.value || "").trim() !== "")
+[...sec.querySelectorAll("input[type='text']")].some(i => i.value.trim() !== "")
   ).length;
 
   const total = formCards.length;
@@ -71,9 +71,8 @@ const updateProgress = () => {
   if (progressText) progressText.textContent = `Progression : ${pct}%`;
 };
 
-// Déclenchement à chaque changement/saisie
+// Déclenchement à chaque changement
 document.addEventListener("change", updateProgress);
-document.addEventListener("input", updateProgress);
 
 /* ---------------------------------------------
 * Rôle / Équipe : champs "Autre"
@@ -91,7 +90,6 @@ const toggleOther = (name, inputId) => {
     if (e.target.value !== "Autre") input.style.display = "none";
   }));
 };
-// Champs optionnels conservés si présents dans le formulaire
 toggleOther("role", "role-autre");
 toggleOther("equipe", "equipe-autre");
 
@@ -110,7 +108,7 @@ const toolsMobBase = ["Goniomètre","Inclinomètre","Autre"];
 
 // Paramètres + critères – Force
 const paramsForce = ["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)","RFD (Rate of Force Development)","Angle du pic de force (°)","Endurance (s)"];
-const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Valeurs normatives","Autre"];
+const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Autre"];
 
 // Proprio / questionnaires
 const proprioByZone = {
@@ -124,14 +122,14 @@ const proprioByZone = {
 "Coude":[]
 };
 const questionnairesByZone = {
-"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","VISA-P","VISA-A","Questionnaire de confiance global","Autre"],
-"Hanche":["HAGOS","iHOT-12","HOOS","HOS","Questionnaire de confiance global","Autre"],
-"Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Questionnaire de confiance global","Autre"],
-"Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Questionnaire de confiance global","Autre"],
-"Poignet / Main":["PRWE","DASH","QuickDASH","Boston Carpal Tunnel","Questionnaire de confiance global","Autre"],
-"Cheville / Pied":["CAIT","FAAM-ADL","FAAM-Sport","FAOS","FFI","Questionnaire de confiance global","Autre"],
-"Rachis lombaire":["ODI (Oswestry)","Roland-Morris","Quebec Back Pain","FABQ","Questionnaire de confiance global","Autre"],
-[headNeckTitle]:["SCAT6","Neck Disability Index (NDI)","Copenhagen Neck Functional Scale","Questionnaire de confiance global","Autre"]
+"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","Autre"],
+"Hanche":["HAGOS","iHOT-12","HOOS","HOS","Autre"],
+"Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Autre"],
+"Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Autre"],
+"Poignet / Main":["PRWE","DASH","QuickDASH","Boston Carpal Tunnel","Autre"],
+"Cheville / Pied":["CAIT","FAAM-ADL","FAAM-Sport","FAOS","FFI","Autre"],
+"Rachis lombaire":["ODI (Oswestry)","Roland-Morris","Quebec Back Pain","FABQ","Autre"],
+[headNeckTitle]:["SCAT6","Neck Disability Index (NDI)","Copenhagen Neck Functional Scale","Autre"]
 };
 
 // Tests musculaires + spécifiques
@@ -146,7 +144,7 @@ const testsByMuscle = {
 
 // Isocinétisme
 const isokineticSpeeds = ["30°/s","60°/s","120°/s","180°/s","Autre"];
-const isokineticModes = ["Concentrique","Excentrique","Isométrique"];
+const isokineticModes = ["Concentrique","Excentrique"];
 
 /* ---------------------------------------------
 * Zones & conteneurs
@@ -555,7 +553,7 @@ ${["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)
 </div>
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
-${["Comparaison droite/gauche","Valeur de référence individuelle","Valeurs normatives","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
+${["Comparaison droite/gauche","Valeur de référence individuelle","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
 </div>`;
 ensureOtherText(opc.querySelector(".tools-group"));
 ensureOtherText(opc.querySelectorAll(".checkbox-group")[2]);
@@ -580,7 +578,7 @@ extraTools += `<label><input type="checkbox" value="Craniocervical Flexion Test 
 // Critères override pour Tête/Rachis Flex/Ext (pas de DG)
 let criteriaOverride = null;
 if (zoneName===headNeckTitle && mb.value==="Flexion/Extension") {
-criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Valeurs normatives","Autre"];
+criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Autre"];
 }
 
 const opc = createOPC(extraTools,{excludeIsokinetic:false,criteriaOverride});
@@ -612,7 +610,6 @@ if (["Épaule","Hanche"].includes(zoneName)) moves.push("Adduction/Abduction");
 if (zoneName==="Cheville / Pied") moves.push("Éversion/Inversion");
 if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) moves.push("Inclinaisons");
 if (zoneName==="Poignet / Main") moves.push("Inclinaison");
-if (zoneName==="Coude") moves.push("Prono/Supination");
 
 div.innerHTML = `
 <h4>Mobilité – ${zoneName}</h4>
@@ -662,7 +659,6 @@ ${tools.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join(
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
-<label><input type="checkbox" value="Valeurs normatives"> Valeurs normatives</label>
 ${ (zoneName==="Rachis lombaire" && mb.value==="Flexion/Extension") ? "" : `<label><input type="checkbox" value="Comparaison droite/gauche"> Comparaison droite/gauche</label>` }
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
@@ -697,7 +693,6 @@ ${list.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("
 <div class="checkbox-group">
 <label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
-<label><input type="checkbox" value="Valeurs normatives"> Valeurs normatives</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
 ensureOtherText(div.querySelector(".proprio-tests"));
@@ -804,11 +799,10 @@ d.innerHTML = `
 <h3>Tests de sauts</h3>
 <label>Effectuez-vous des tests de sauts ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="jumps-yn" value="Oui" checked> Oui</label>
+<label><input type="radio" name="jumps-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="jumps-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests de sauts utilisez-vous ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="CMJ (Countermovement Jump)"> CMJ (Countermovement Jump)</label>
@@ -850,11 +844,9 @@ ${getMomentSelectorHtml()}
 `;
 const yn = d.querySelectorAll("input[name='jumps-yn']");
 const det = d.querySelector("#jumps-detail");
-initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
-det.classList.add("show");
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 return d;
 };
@@ -867,11 +859,10 @@ d.innerHTML = `
 <h3>Tests de course</h3>
 <label>Effectuez-vous des tests de course ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="course-yn" value="Oui" checked> Oui</label>
+<label><input type="radio" name="course-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="course-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests de course utilisez-vous ?</label>
 
 <h4 class="subtle">Énergétiques</h4>
@@ -930,12 +921,10 @@ ${getMomentSelectorHtml()}
 `;
 const yn = d.querySelectorAll("input[name='course-yn']");
 const det = d.querySelector("#course-detail");
-initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 toggleCombatBlock();
 }));
-det.classList.add("show");
 
 // Décélération toggle
 const dYN = d.querySelectorAll("input[name='decel-yn']");
@@ -956,11 +945,10 @@ d.innerHTML = `
 <h3>Tests fonctionnels globaux – Membre inférieur</h3>
 <label>Effectuez-vous des tests fonctionnels globaux du membre inférieur ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="mi-yn" value="Oui" checked> Oui</label>
+<label><input type="radio" name="mi-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="mi-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Squat"> Squat</label>
@@ -992,11 +980,9 @@ ${getMomentSelectorHtml()}
 `;
 const yn = d.querySelectorAll("input[name='mi-yn']");
 const det = d.querySelector("#mi-detail");
-initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
-det.classList.add("show");
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 return d;
 };
@@ -1009,11 +995,10 @@ d.innerHTML = `
 <h3>Tests fonctionnels globaux – Membre supérieur</h3>
 <label>Effectuez-vous des tests fonctionnels globaux du membre supérieur ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="ms-yn" value="Oui" checked> Oui</label>
+<label><input type="radio" name="ms-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="ms-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
@@ -1046,11 +1031,9 @@ ${getMomentSelectorHtml()}
 `;
 const yn = d.querySelectorAll("input[name='ms-yn']");
 const det = d.querySelector("#ms-detail");
-initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
-det.classList.add("show");
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
 return d;
 };
@@ -1063,7 +1046,7 @@ d.innerHTML = `
 <h3>Tests spécifiques de combat</h3>
 <label>Effectuez-vous des tests spécifiques de combat ?</label>
 <div class="checkbox-group yn">
-<label><input type="radio" name="combat-yn" value="Oui" checked> Oui</label>
+<label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="combat-yn" value="Non"> Non</label>
 </div>
 `;
@@ -1074,25 +1057,49 @@ const hasAnyReturnToPlaySelected = () => (
   !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
 );
 
-const hasCourseTestsEnabled = () => (
-  !!document.querySelector("input[name='course-yn'][value='Oui']:checked")
-);
-
 const toggleCombatBlock = () => {
+const anyReturn = hasAnyReturnToPlaySelected();
+if (anyReturn) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
 }
+} else {
+if (combatBlock) { combatBlock.remove(); combatBlock=null; }
+}
 };
 
 const toggleGlobalsBlock = () => {
-globalsSection.style.display = "";
-
+const zones = selectedZones();
+const hasLower = zones.some(z=>lowerBody.includes(z));
+const hasHead = zones.some(z=>headNeck.includes(z));
+const logical = getLogicalZones();
+const any = logical.length>0;
+globalsSection.style.display = any ? "" : "none";
+if (!any) {
+globalBlocks.innerHTML = "";
+jumpsBlock = courseBlock = globalMIBlock = globalMSBlock = combatBlock = null;
+return;
+}
+// Sauts: si MI cochée
+if (hasLower) {
 if (!jumpsBlock) { jumpsBlock = buildJumpsBlock(); globalBlocks.appendChild(jumpsBlock); }
+} else if (jumpsBlock) { jumpsBlock.remove(); jumpsBlock=null; }
+// Course: si MI ou tête/rachis cochés
+if (hasLower || hasHead) {
 if (!courseBlock) { courseBlock = buildCourseBlock(); globalBlocks.appendChild(courseBlock); }
+} else if (courseBlock) { courseBlock.remove(); courseBlock=null; }
+// Globaux MI: si MI cochée
+if (hasLower) {
 if (!globalMIBlock) { globalMIBlock = buildGlobalMIBlock(); globalBlocks.appendChild(globalMIBlock); }
+} else if (globalMIBlock) { globalMIBlock.remove(); globalMIBlock=null; }
+// Globaux MS: si MS cochée
+const hasUpper = zones.some(z=>["Épaule","Coude","Poignet / Main"].includes(z));
+if (hasUpper) {
 if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendChild(globalMSBlock); }
-if (!combatBlock) { combatBlock = buildCombatBlock(); globalBlocks.appendChild(combatBlock); }
+} else if (globalMSBlock) { globalMSBlock.remove(); globalMSBlock=null; }
+// Combat
+toggleCombatBlock();
 };
   
 /* ---------------------------------------------
@@ -1130,19 +1137,6 @@ const resultMsg = byId("resultMessage");
 const submitBtn = byId("submitBtn");
 const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3sv7z3aDWRJckLz9KMpDnsmg3-4zj-MuCUHzmpfl-u3xFdQ/formResponse";
 const GOOGLE_ENTRY_KEY = "entry.1017475409";
-const PENDING_SUBMISSION_KEY = "questionnaire_pending_payload_v1";
-const SENT_SIGNATURES_KEY = "questionnaire_sent_signatures_v1";
-let isSubmitting = false;
-
-const delay = (ms) => new Promise(res => setTimeout(res, ms));
-const generateSubmissionId = () => `SUB-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
-const stableStringify = (v) => {
-  if (v === null || typeof v !== "object") return JSON.stringify(v);
-  if (Array.isArray(v)) return `[${v.map(stableStringify).join(",")}]`;
-  const keys = Object.keys(v).sort();
-  return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(v[k])}`).join(",")}}`;
-};
-const payloadSignature = (payload) => stableStringify(payload);
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
@@ -1166,8 +1160,6 @@ const buildPayload = () => {
     nom: byId("kine_nom")?.value.trim() || "",
     prenom: byId("kine_prenom")?.value.trim() || ""
   };
-  payload.submission_id = generateSubmissionId();
-  payload.submitted_at_client = new Date().toISOString();
   // --- Zones sélectionnées
   payload.zones = selectedZones();
 
@@ -1377,7 +1369,6 @@ const buildPayload = () => {
   if (jumps) {
     gb.sauts = { fait: gatherRadio(jumps) };
     if (gb.sauts.fait === "Oui") {
-      gb.sauts.moments = gatherChecked(jumps.querySelector("#jumps-detail .type-moment"));
       const groups = jumps.querySelectorAll("#jumps-detail .checkbox-group");
       gb.sauts.tests = listVals(groups[0].querySelectorAll("input:checked"));
       gb.sauts.params = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1398,7 +1389,6 @@ const buildPayload = () => {
   if (course) {
     gb.course = { fait: gatherRadio(course) };
     if (gb.course.fait === "Oui") {
-      gb.course.moments = gatherChecked(course.querySelector("#course-detail .type-moment"));
       const groups = course.querySelectorAll("#course-detail .checkbox-group");
       gb.course.tests_ener = listVals(groups[0].querySelectorAll("input:checked"));
       gb.course.tests_vit = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1423,7 +1413,6 @@ const buildPayload = () => {
   if (mi) {
     gb.mi = { fait: gatherRadio(mi) };
     if (gb.mi.fait === "Oui") {
-      gb.mi.moments = gatherChecked(mi.querySelector("#mi-detail .type-moment"));
       const groups = mi.querySelectorAll("#mi-detail .checkbox-group");
       gb.mi.tests = listVals(groups[0].querySelectorAll("input:checked"));
       gb.mi.outils = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1444,7 +1433,6 @@ const buildPayload = () => {
   if (ms) {
     gb.ms = { fait: gatherRadio(ms) };
     if (gb.ms.fait === "Oui") {
-      gb.ms.moments = gatherChecked(ms.querySelector("#ms-detail .type-moment"));
       const groups = ms.querySelectorAll("#ms-detail .checkbox-group");
       gb.ms.tests = listVals(groups[0].querySelectorAll("input:checked"));
       gb.ms.outils = listVals(groups[1].querySelectorAll("input:checked"));
@@ -1556,32 +1544,8 @@ const validateDetailed = () => {
   return errors;
 };
 
-const postToGoogleForm = async (payload, { retries = 2, timeoutMs = 10000 } = {}) => {
-  const fd = new FormData();
-  fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
-
-  let lastError = null;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      await fetch(GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: fd, signal: controller.signal });
-      clearTimeout(timer);
-      return { ok: true, attempt: attempt + 1 };
-    } catch (err) {
-      clearTimeout(timer);
-      lastError = err;
-      if (attempt < retries) await delay(800 * (attempt + 1));
-    }
-  }
-  return { ok: false, error: lastError };
-};
-
 submitBtn.addEventListener("click", async (e)=>{
 e.preventDefault();
-if (isSubmitting) return;
-isSubmitting = true;
-submitBtn.disabled = true;
 
 clearErrors();
 resultMsg.textContent = "";
@@ -1597,8 +1561,6 @@ if (errors.length) {
   const c = errorContainerFor(first);
   c?.scrollIntoView({ behavior: "smooth", block: "center" });
   first?.focus?.();
-  isSubmitting = false;
-  submitBtn.disabled = false;
 
   return;
 }
@@ -1610,40 +1572,21 @@ try {
   resultMsg.style.color = "#d11c1c";
   resultMsg.textContent = "⚠️ Erreur interne : impossible de construire le questionnaire (console).";
   console.error(err);
-  isSubmitting = false;
-  submitBtn.disabled = false;
   return;
 }
-
-const signature = payloadSignature(payload);
-const sentSigs = JSON.parse(localStorage.getItem(SENT_SIGNATURES_KEY) || "[]");
-if (sentSigs.includes(signature)) {
-  resultMsg.style.color = "#0a7f2e";
-  resultMsg.textContent = "✅ Ce questionnaire a déjà été envoyé.";
-  isSubmitting = false;
-  submitBtn.disabled = false;
-  return;
-}
-
-localStorage.setItem(PENDING_SUBMISSION_KEY, JSON.stringify(payload));
+const fd = new FormData();
+fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
 
 try{
-const res = await postToGoogleForm(payload, { retries: 2, timeoutMs: 10000 });
-if (!res.ok) throw res.error || new Error("Échec d'envoi");
+await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
 // Marqueur pour afficher le message après refresh
 sessionStorage.setItem("questionnaire_sent_ok", "1");
-localStorage.removeItem(PENDING_SUBMISSION_KEY);
-localStorage.setItem(SENT_SIGNATURES_KEY, JSON.stringify([...sentSigs.slice(-19), signature]));
 
 // Recharge la page pour repartir sur un formulaire vierge
 window.location.reload();
 }catch(err){
 resultMsg.style.color = "#d11c1c";
-resultMsg.textContent = "⚠️ Erreur d’envoi. Vos données sont conservées localement, vous pouvez réessayer.";
-console.error("Erreur envoi questionnaire:", err);
-} finally {
-isSubmitting = false;
-submitBtn.disabled = false;
+resultMsg.textContent = "⚠️ Erreur d’envoi. Vérifiez votre connexion et réessayez.";
 }
 });
 
@@ -1666,15 +1609,9 @@ toggle();
 };
 setupCommonAutre("barrieres","barrieres-autre");
 setupCommonAutre("raisons","raisons-autre");
-toggleGlobalsBlock();
 
 // ===== Message après rechargement (post-envoi) =====
 const SENT_FLAG = "questionnaire_sent_ok";
-const pendingSubmission = localStorage.getItem(PENDING_SUBMISSION_KEY);
-if (pendingSubmission) {
-  resultMsg.style.color = "#b26a00";
-  resultMsg.textContent = "⚠️ Une tentative d’envoi précédente est en attente. Cliquez sur “Envoyer” pour relancer l’envoi.";
-}
 if (sessionStorage.getItem(SENT_FLAG) === "1") {
   sessionStorage.removeItem(SENT_FLAG);
   resultMsg.style.color = "#0a7f2e";
