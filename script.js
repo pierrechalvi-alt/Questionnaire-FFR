@@ -57,7 +57,7 @@ const formCards = $$(".card");
 const updateProgress = () => {
   const filled = formCards.filter(sec =>
     sec.querySelector("input:checked") ||
-[...sec.querySelectorAll("input[type='text']")].some(i => i.value.trim() !== "")
+    [...sec.querySelectorAll("input[type='text'], textarea, select")].some(i => (i.value || "").trim() !== "")
   ).length;
 
   const total = formCards.length;
@@ -71,8 +71,9 @@ const updateProgress = () => {
   if (progressText) progressText.textContent = `Progression : ${pct}%`;
 };
 
-// Déclenchement à chaque changement
+// Déclenchement à chaque changement/saisie
 document.addEventListener("change", updateProgress);
+document.addEventListener("input", updateProgress);
 
 /* ---------------------------------------------
 * Rôle / Équipe : champs "Autre"
@@ -90,6 +91,7 @@ const toggleOther = (name, inputId) => {
     if (e.target.value !== "Autre") input.style.display = "none";
   }));
 };
+// Champs optionnels conservés si présents dans le formulaire
 toggleOther("role", "role-autre");
 toggleOther("equipe", "equipe-autre");
 
@@ -108,7 +110,7 @@ const toolsMobBase = ["Goniomètre","Inclinomètre","Autre"];
 
 // Paramètres + critères – Force
 const paramsForce = ["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)","RFD (Rate of Force Development)","Angle du pic de force (°)","Endurance (s)"];
-const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Autre"];
+const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Valeurs normatives","Autre"];
 
 // Proprio / questionnaires
 const proprioByZone = {
@@ -122,14 +124,14 @@ const proprioByZone = {
 "Coude":[]
 };
 const questionnairesByZone = {
-"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","Autre"],
-"Hanche":["HAGOS","iHOT-12","HOOS","HOS","Autre"],
-"Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Autre"],
-"Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Autre"],
-"Poignet / Main":["PRWE","DASH","QuickDASH","Boston Carpal Tunnel","Autre"],
-"Cheville / Pied":["CAIT","FAAM-ADL","FAAM-Sport","FAOS","FFI","Autre"],
-"Rachis lombaire":["ODI (Oswestry)","Roland-Morris","Quebec Back Pain","FABQ","Autre"],
-[headNeckTitle]:["SCAT6","Neck Disability Index (NDI)","Copenhagen Neck Functional Scale","Autre"]
+"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","VISA-P","VISA-A","Questionnaire de confiance global","Autre"],
+"Hanche":["HAGOS","iHOT-12","HOOS","HOS","Questionnaire de confiance global","Autre"],
+"Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Questionnaire de confiance global","Autre"],
+"Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Questionnaire de confiance global","Autre"],
+"Poignet / Main":["PRWE","DASH","QuickDASH","Boston Carpal Tunnel","Questionnaire de confiance global","Autre"],
+"Cheville / Pied":["CAIT","FAAM-ADL","FAAM-Sport","FAOS","FFI","Questionnaire de confiance global","Autre"],
+"Rachis lombaire":["ODI (Oswestry)","Roland-Morris","Quebec Back Pain","FABQ","Questionnaire de confiance global","Autre"],
+[headNeckTitle]:["SCAT6","Neck Disability Index (NDI)","Copenhagen Neck Functional Scale","Questionnaire de confiance global","Autre"]
 };
 
 // Tests musculaires + spécifiques
@@ -144,7 +146,7 @@ const testsByMuscle = {
 
 // Isocinétisme
 const isokineticSpeeds = ["30°/s","60°/s","120°/s","180°/s","Autre"];
-const isokineticModes = ["Concentrique","Excentrique"];
+const isokineticModes = ["Concentrique","Excentrique","Isométrique"];
 
 /* ---------------------------------------------
 * Zones & conteneurs
@@ -553,7 +555,7 @@ ${["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)
 </div>
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
-${["Comparaison droite/gauche","Valeur de référence individuelle","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
+${["Comparaison droite/gauche","Valeur de référence individuelle","Valeurs normatives","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
 </div>`;
 ensureOtherText(opc.querySelector(".tools-group"));
 ensureOtherText(opc.querySelectorAll(".checkbox-group")[2]);
@@ -578,7 +580,7 @@ extraTools += `<label><input type="checkbox" value="Craniocervical Flexion Test 
 // Critères override pour Tête/Rachis Flex/Ext (pas de DG)
 let criteriaOverride = null;
 if (zoneName===headNeckTitle && mb.value==="Flexion/Extension") {
-criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Autre"];
+criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Valeurs normatives","Autre"];
 }
 
 const opc = createOPC(extraTools,{excludeIsokinetic:false,criteriaOverride});
@@ -610,6 +612,7 @@ if (["Épaule","Hanche"].includes(zoneName)) moves.push("Adduction/Abduction");
 if (zoneName==="Cheville / Pied") moves.push("Éversion/Inversion");
 if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) moves.push("Inclinaisons");
 if (zoneName==="Poignet / Main") moves.push("Inclinaison");
+if (zoneName==="Coude") moves.push("Prono/Supination");
 
 div.innerHTML = `
 <h4>Mobilité – ${zoneName}</h4>
@@ -659,6 +662,7 @@ ${tools.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join(
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeurs normatives"> Valeurs normatives</label>
 ${ (zoneName==="Rachis lombaire" && mb.value==="Flexion/Extension") ? "" : `<label><input type="checkbox" value="Comparaison droite/gauche"> Comparaison droite/gauche</label>` }
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
@@ -693,6 +697,7 @@ ${list.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("
 <div class="checkbox-group">
 <label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeurs normatives"> Valeurs normatives</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
 ensureOtherText(div.querySelector(".proprio-tests"));
@@ -803,6 +808,7 @@ d.innerHTML = `
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="jumps-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests de sauts utilisez-vous ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="CMJ (Countermovement Jump)"> CMJ (Countermovement Jump)</label>
@@ -844,6 +850,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='jumps-yn']");
 const det = d.querySelector("#jumps-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
@@ -863,6 +870,7 @@ d.innerHTML = `
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="course-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests de course utilisez-vous ?</label>
 
 <h4 class="subtle">Énergétiques</h4>
@@ -921,6 +929,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='course-yn']");
 const det = d.querySelector("#course-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 toggleCombatBlock();
@@ -949,6 +958,7 @@ d.innerHTML = `
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="mi-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Squat"> Squat</label>
@@ -980,6 +990,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='mi-yn']");
 const det = d.querySelector("#mi-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
@@ -999,6 +1010,7 @@ d.innerHTML = `
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="ms-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
@@ -1031,6 +1043,7 @@ d.innerHTML = `
 `;
 const yn = d.querySelectorAll("input[name='ms-yn']");
 const det = d.querySelector("#ms-detail");
+initMomentGroup(det);
 yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
@@ -1057,9 +1070,14 @@ const hasAnyReturnToPlaySelected = () => (
   !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
 );
 
+const hasCourseTestsEnabled = () => (
+  !!document.querySelector("input[name='course-yn'][value='Oui']:checked")
+);
+
 const toggleCombatBlock = () => {
 const anyReturn = hasAnyReturnToPlaySelected();
-if (anyReturn) {
+const courseEnabled = hasCourseTestsEnabled();
+if (anyReturn || courseEnabled) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
