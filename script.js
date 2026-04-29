@@ -1662,6 +1662,7 @@ toggle();
 };
 setupCommonAutre("barrieres","barrieres-autre");
 setupCommonAutre("raisons","raisons-autre");
+toggleGlobalsBlock();
 
 // ===== Message après rechargement (post-envoi) =====
 const SENT_FLAG = "questionnaire_sent_ok";
