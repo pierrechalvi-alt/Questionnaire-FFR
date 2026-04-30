@@ -144,7 +144,7 @@ const testsByMuscle = {
 
 // Isocinétisme
 const isokineticSpeeds = ["30°/s","60°/s","120°/s","180°/s","Autre"];
-const isokineticModes = ["Concentrique","Excentrique"];
+const isokineticModes = ["Concentrique","Excentrique","Isométrique"];
 
 /* ---------------------------------------------
 * Zones & conteneurs
