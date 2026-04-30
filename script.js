@@ -806,6 +806,7 @@ d.innerHTML = `
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="jumps-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests de sauts utilisez-vous ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="CMJ (Countermovement Jump)"> CMJ (Countermovement Jump)</label>
@@ -852,6 +853,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+initMomentGroup(d);
 return d;
 };
 
@@ -867,6 +869,7 @@ d.innerHTML = `
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="course-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests de course utilisez-vous ?</label>
 
 <h4 class="subtle">Énergétiques</h4>
@@ -939,6 +942,7 @@ dDet.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+initMomentGroup(d);
 return d;
 };
 
@@ -954,6 +958,7 @@ d.innerHTML = `
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="mi-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Squat"> Squat</label>
@@ -990,6 +995,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+initMomentGroup(d);
 return d;
 };
 
@@ -1005,6 +1011,7 @@ d.innerHTML = `
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="ms-detail">
+${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
@@ -1042,23 +1049,53 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+initMomentGroup(d);
 return d;
 };
 
 const buildCombatBlock = () => {
 const d = document.createElement("div");
-d.className = "subcard";
-d.id = "global-combat";
-d.innerHTML = `
-<h3>Tests spécifiques de combat</h3>
-<label>Effectuez-vous des tests spécifiques de combat ?</label>
-<div class="checkbox-group yn">
-<label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
-<label><input type="radio" name="combat-yn" value="Non"> Non</label>
-</div>
-`;
-return d;
-};
+	d.className = "subcard";
+	d.id = "global-combat";
+	d.innerHTML = `
+	<h3>Tests spécifiques de combat</h3>
+	<label>Effectuez-vous des tests spécifiques de combat ?</label>
+	<div class="checkbox-group yn">
+	<label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
+	<label><input type="radio" name="combat-yn" value="Non"> Non</label>
+	</div>
+	<div class="slide" id="combat-detail">
+	${getMomentSelectorHtml()}
+	</div>
+	`;
+	const yn = d.querySelectorAll("input[name='combat-yn']");
+	const det = d.querySelector("#combat-detail");
+	yn.forEach(r=>r.addEventListener("change",()=>{
+	det.classList.toggle("show", r.value==="Oui" && r.checked);
+	}));
+	const freqGroup = d.querySelector(".type-moment");
+	if (freqGroup) {
+	const autreFreq = freqGroup.querySelector("input[value='Autre fréquence']");
+	if (autreFreq) {
+	const ensureFreq = () => {
+	let wrap = freqGroup.querySelector(".other-wrap");
+	if (autreFreq.checked) {
+	if (!wrap) {
+	wrap = document.createElement("div");
+	wrap.className = "other-wrap";
+	wrap.innerHTML = `<input type="text" class="other-input small" placeholder="Fréquence (précisez)" required>`;
+	freqGroup.appendChild(wrap);
+	}
+	} else if (wrap) {
+	wrap.remove();
+	}
+	};
+	autreFreq.addEventListener("change", ensureFreq);
+	ensureFreq();
+	}
+	}
+	return d;
+	};
 
 const hasAnyReturnToPlaySelected = () => (
   !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
