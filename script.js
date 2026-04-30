@@ -144,7 +144,7 @@ const testsByMuscle = {
 
 // Isocinétisme
 const isokineticSpeeds = ["30°/s","60°/s","120°/s","180°/s","Autre"];
-const isokineticModes = ["Concentrique","Excentrique","Isométrique"];
+const isokineticModes = ["Concentrique","Excentrique"];
 
 /* ---------------------------------------------
 * Zones & conteneurs
@@ -211,7 +211,6 @@ wrap.remove();
 }
 toggleCombatBlock();
 toggleGlobalsBlock();
-ensureAutreForSubItems(document);
 };
 
 autreFreq.addEventListener("change", ensureFreq);
@@ -222,30 +221,6 @@ ensureFreq();
 };
 
 // ---- Isocinétisme: sous-questions standardisées
-
-const attachMomentsOnYes = (rootEl, radioName, detailSelector) => {
-  const radios = rootEl.querySelectorAll(`input[name='${radioName}']`);
-  const detail = rootEl.querySelector(detailSelector);
-  const ensureMoments = () => {
-    const yesChecked = !!rootEl.querySelector(`input[name='${radioName}'][value='Oui']:checked`);
-    if (!detail) return;
-    let holder = detail.querySelector(":scope > .conditional-moment");
-    if (yesChecked) {
-      if (!holder) {
-        holder = document.createElement("div");
-        holder.className = "conditional-moment";
-        holder.innerHTML = getMomentSelectorHtml();
-        detail.insertAdjacentElement("afterbegin", holder);
-        initMomentGroup(holder);
-      }
-    } else if (holder) {
-      holder.remove();
-    }
-  };
-  radios.forEach(r => r.addEventListener("change", ensureMoments));
-  ensureMoments();
-};
-
 const attachIsokineticHandlers = (scope) => {
 const groups = scope.querySelectorAll(".tools-group");
 groups.forEach(g => {
@@ -355,7 +330,6 @@ if (block){
 block.classList.add("slide","show");
 subQ.appendChild(block);
 initMomentGroup(block);
-ensureAutreForSubItems(block);
 }
 } else if (exists) {
 exists.classList.remove("show");
@@ -370,7 +344,6 @@ const removeZoneSection = (zoneName) => {
 const el = byId(`section-${slug(zoneName)}`);
 if (el) el.remove();
 toggleGlobalsBlock();
-ensureAutreForSubItems(document);
 };
 
 /* ---------------------------------------------
@@ -634,7 +607,6 @@ const moves = [];
 moves.push("Flexion/Extension");
 if (!["Genou","Cheville / Pied","Coude","Poignet / Main"].includes(zoneName)) moves.push("Rotations");
 if (["Épaule","Hanche"].includes(zoneName)) moves.push("Adduction/Abduction");
-if (zoneName==="Coude") moves.push("Prono/Supination");
 if (zoneName==="Cheville / Pied") moves.push("Éversion/Inversion");
 if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) moves.push("Inclinaisons");
 if (zoneName==="Poignet / Main") moves.push("Inclinaison");
@@ -809,7 +781,6 @@ if (anyHN) createZoneSection(headNeckTitle); else removeZoneSection(headNeckTitl
 if (cb.checked) createZoneSection(cb.value); else removeZoneSection(cb.value);
 }
 toggleGlobalsBlock();
-ensureAutreForSubItems(document);
 });
 });
 
@@ -831,7 +802,7 @@ d.innerHTML = `
 <label><input type="radio" name="jumps-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
-<div class="slide show" id="jumps-detail">
+<div class="slide" id="jumps-detail">
 <label>Quels tests de sauts utilisez-vous ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="CMJ (Countermovement Jump)"> CMJ (Countermovement Jump)</label>
@@ -871,8 +842,12 @@ d.innerHTML = `
 </div>
 </div>
 `;
+const yn = d.querySelectorAll("input[name='jumps-yn']");
+const det = d.querySelector("#jumps-detail");
+yn.forEach(r=>r.addEventListener("change",()=>{
+det.classList.toggle("show", r.value==="Oui" && r.checked);
+}));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-attachMomentsOnYes(d, "jumps-yn", "#jumps-detail");
 return d;
 };
 
@@ -887,7 +862,7 @@ d.innerHTML = `
 <label><input type="radio" name="course-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
-<div class="slide show" id="course-detail">
+<div class="slide" id="course-detail">
 <label>Quels tests de course utilisez-vous ?</label>
 
 <h4 class="subtle">Énergétiques</h4>
@@ -944,6 +919,12 @@ d.innerHTML = `
 </div>
 </div>
 `;
+const yn = d.querySelectorAll("input[name='course-yn']");
+const det = d.querySelector("#course-detail");
+yn.forEach(r=>r.addEventListener("change",()=>{
+det.classList.toggle("show", r.value==="Oui" && r.checked);
+toggleCombatBlock();
+}));
 
 // Décélération toggle
 const dYN = d.querySelectorAll("input[name='decel-yn']");
@@ -952,14 +933,7 @@ dYN.forEach(r=>r.addEventListener("change",()=>{
 dDet.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 
-const yn = d.querySelectorAll("input[name='course-yn']");
-const det = d.querySelector("#course-detail");
-yn.forEach(r=>r.addEventListener("change",()=>{
-det.classList.toggle("show", r.value==="Oui" && r.checked);
-}));
-
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-attachMomentsOnYes(d, "course-yn", "#course-detail");
 return d;
 };
 
@@ -974,7 +948,7 @@ d.innerHTML = `
 <label><input type="radio" name="mi-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
-<div class="slide show" id="mi-detail">
+<div class="slide" id="mi-detail">
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Squat"> Squat</label>
@@ -1004,8 +978,12 @@ d.innerHTML = `
 </div>
 </div>
 `;
+const yn = d.querySelectorAll("input[name='mi-yn']");
+const det = d.querySelector("#mi-detail");
+yn.forEach(r=>r.addEventListener("change",()=>{
+det.classList.toggle("show", r.value==="Oui" && r.checked);
+}));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-attachMomentsOnYes(d, "mi-yn", "#mi-detail");
 return d;
 };
 
@@ -1020,7 +998,7 @@ d.innerHTML = `
 <label><input type="radio" name="ms-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
-<div class="slide show" id="ms-detail">
+<div class="slide" id="ms-detail">
 <label>Quels tests ?</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
@@ -1051,8 +1029,12 @@ d.innerHTML = `
 </div>
 </div>
 `;
+const yn = d.querySelectorAll("input[name='ms-yn']");
+const det = d.querySelector("#ms-detail");
+yn.forEach(r=>r.addEventListener("change",()=>{
+det.classList.toggle("show", r.value==="Oui" && r.checked);
+}));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-attachMomentsOnYes(d, "ms-yn", "#ms-detail");
 return d;
 };
 
@@ -1067,38 +1049,59 @@ d.innerHTML = `
 <label><input type="radio" name="combat-yn" value="Oui"> Oui</label>
 <label><input type="radio" name="combat-yn" value="Non"> Non</label>
 </div>
-<div class="slide" id="combat-detail"></div>
 `;
-const yn = d.querySelectorAll("input[name='combat-yn']");
-const det = d.querySelector("#combat-detail");
-yn.forEach(r=>r.addEventListener("change",()=>{
-det.classList.toggle("show", r.value==="Oui" && r.checked);
-}));
-attachMomentsOnYes(d, "combat-yn", "#combat-detail");
 return d;
 };
 
+const hasAnyReturnToPlaySelected = () => (
+  !!document.querySelector(".type-moment input[value='Retour au jeu']:checked")
+);
+
 const toggleCombatBlock = () => {
+const anyReturn = hasAnyReturnToPlaySelected();
+if (anyReturn) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
 }
+} else {
+if (combatBlock) { combatBlock.remove(); combatBlock=null; }
+}
 };
 
 const toggleGlobalsBlock = () => {
-  globalsSection.style.display = "";
-
-  if (!jumpsBlock) { jumpsBlock = buildJumpsBlock(); globalBlocks.appendChild(jumpsBlock); ensureAutreForSubItems(jumpsBlock); }
-  if (!courseBlock) { courseBlock = buildCourseBlock(); globalBlocks.appendChild(courseBlock); ensureAutreForSubItems(courseBlock); }
-  if (!globalMIBlock) { globalMIBlock = buildGlobalMIBlock(); globalBlocks.appendChild(globalMIBlock); ensureAutreForSubItems(globalMIBlock); }
-  if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendChild(globalMSBlock); ensureAutreForSubItems(globalMSBlock); }
-
-  toggleCombatBlock();
+const zones = selectedZones();
+const hasLower = zones.some(z=>lowerBody.includes(z));
+const hasHead = zones.some(z=>headNeck.includes(z));
+const logical = getLogicalZones();
+const any = logical.length>0;
+globalsSection.style.display = any ? "" : "none";
+if (!any) {
+globalBlocks.innerHTML = "";
+jumpsBlock = courseBlock = globalMIBlock = globalMSBlock = combatBlock = null;
+return;
+}
+// Sauts: si MI cochée
+if (hasLower) {
+if (!jumpsBlock) { jumpsBlock = buildJumpsBlock(); globalBlocks.appendChild(jumpsBlock); }
+} else if (jumpsBlock) { jumpsBlock.remove(); jumpsBlock=null; }
+// Course: si MI ou tête/rachis cochés
+if (hasLower || hasHead) {
+if (!courseBlock) { courseBlock = buildCourseBlock(); globalBlocks.appendChild(courseBlock); }
+} else if (courseBlock) { courseBlock.remove(); courseBlock=null; }
+// Globaux MI: si MI cochée
+if (hasLower) {
+if (!globalMIBlock) { globalMIBlock = buildGlobalMIBlock(); globalBlocks.appendChild(globalMIBlock); }
+} else if (globalMIBlock) { globalMIBlock.remove(); globalMIBlock=null; }
+// Globaux MS: si MS cochée
+const hasUpper = zones.some(z=>["Épaule","Coude","Poignet / Main"].includes(z));
+if (hasUpper) {
+if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendChild(globalMSBlock); }
+} else if (globalMSBlock) { globalMSBlock.remove(); globalMSBlock=null; }
+// Combat
+toggleCombatBlock();
 };
   
-toggleGlobalsBlock();
-ensureAutreForSubItems(document);
-
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
 * ------------------------------------------- */
@@ -1137,52 +1140,6 @@ const GOOGLE_ENTRY_KEY = "entry.1017475409";
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
-
-
-const ensureAutreForSubItems = (scope) => {
-  if (!scope) return;
-  scope.querySelectorAll("label").forEach(lbl => {
-    const t = lbl.textContent?.trim();
-    const group = lbl.nextElementSibling;
-    if (!group || !group.classList.contains("checkbox-group")) return;
-
-    if (["Outils", "Outils utilisés", "Paramètres étudiés", "Paramètres", "Paramètres étudiés", "Quels tests ?", "Tests spécifiques"].includes(t)) {
-      const hasAutre = !!group.querySelector("input[type='checkbox'][value='Autre']");
-      if (!hasAutre) {
-        const lab = document.createElement("label");
-        lab.innerHTML = `<input type="checkbox" value="Autre"> Autre`;
-        group.appendChild(lab);
-      }
-      ensureOtherText(group);
-    }
-
-    if (t === "Critères d’évaluation") {
-      const hasNormative = [...group.querySelectorAll("input[type='checkbox']")].some(i => i.value === "Valeurs normatives");
-      if (!hasNormative) {
-        const lab = document.createElement("label");
-        lab.innerHTML = `<input type="checkbox" value="Valeurs normatives"> Valeurs normatives`;
-        group.insertAdjacentElement("afterbegin", lab);
-      }
-      const hasAutre = !!group.querySelector("input[type='checkbox'][value='Autre']");
-      if (!hasAutre) {
-        const lab = document.createElement("label");
-        lab.innerHTML = `<input type="checkbox" value="Autre"> Autre`;
-        group.appendChild(lab);
-      }
-      ensureOtherText(group);
-    }
-    if (!["Outils", "Outils utilisés", "Paramètres étudiés", "Critères d’évaluation", "Quels tests ?", "Tests spécifiques"].includes(t)) return;
-    const group = lbl.nextElementSibling;
-    if (!group || !group.classList.contains("checkbox-group")) return;
-    const hasAutre = !!group.querySelector("input[type='checkbox'][value='Autre']");
-    if (!hasAutre) {
-      const lab = document.createElement("label");
-      lab.innerHTML = `<input type="checkbox" value="Autre"> Autre`;
-      group.appendChild(lab);
-    }
-    ensureOtherText(group);
-  });
-};
 
 const buildPayload = () => {
   const listVals = (nodeList) => [...nodeList].map(i => i.value);
