@@ -108,7 +108,7 @@ const toolsMobBase = ["Goniomètre","Inclinomètre","Autre"];
 
 // Paramètres + critères – Force
 const paramsForce = ["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)","RFD (Rate of Force Development)","Angle du pic de force (°)","Endurance (s)"];
-const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Autre"];
+const criteriaGeneric = ["Ratio agoniste/antagoniste","Comparaison droite/gauche","Valeur de référence individuelle","Valeur normative","Autre"];
 
 // Proprio / questionnaires
 const proprioByZone = {
@@ -122,7 +122,7 @@ const proprioByZone = {
 "Coude":[]
 };
 const questionnairesByZone = {
-"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","Autre"],
+"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","VISA","Autre"],
 "Hanche":["HAGOS","iHOT-12","HOOS","HOS","Autre"],
 "Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Autre"],
 "Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Autre"],
@@ -144,7 +144,7 @@ const testsByMuscle = {
 
 // Isocinétisme
 const isokineticSpeeds = ["30°/s","60°/s","120°/s","180°/s","Autre"];
-const isokineticModes = ["Concentrique","Excentrique"];
+const isokineticModes = ["Concentrique","Excentrique","Isométrique"];
 
 /* ---------------------------------------------
 * Zones & conteneurs
@@ -366,7 +366,7 @@ moves.push("Flexion/Extension","Inclinaison");
 } else if (zoneName==="Hanche") {
 moves.push("Flexion/Extension","Rotations","Adduction/Abduction");
 } else if (zoneName==="Coude") {
-moves.push("Flexion/Extension");
+moves.push("Flexion/Extension","Prono/Supination");
 } else if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) {
 moves.push("Flexion/Extension","Rotations","Inclinaisons");
 } else {
@@ -553,7 +553,7 @@ ${["Force max (N)","Force moyenne (N)","Force relative (N/kg)","Puissance (W/kg)
 </div>
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
-${["Comparaison droite/gauche","Valeur de référence individuelle","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
+${["Comparaison droite/gauche","Valeur de référence individuelle","Valeur normative","Autre"].map(c=>`<label><input type="checkbox" value="${c}"> ${c}</label>`).join("")}
 </div>`;
 ensureOtherText(opc.querySelector(".tools-group"));
 ensureOtherText(opc.querySelectorAll(".checkbox-group")[2]);
@@ -578,7 +578,7 @@ extraTools += `<label><input type="checkbox" value="Craniocervical Flexion Test 
 // Critères override pour Tête/Rachis Flex/Ext (pas de DG)
 let criteriaOverride = null;
 if (zoneName===headNeckTitle && mb.value==="Flexion/Extension") {
-criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Autre"];
+criteriaOverride = ["Ratio agoniste/antagoniste","Valeur de référence individuelle","Valeur normative","Autre"];
 }
 
 const opc = createOPC(extraTools,{excludeIsokinetic:false,criteriaOverride});
@@ -610,6 +610,7 @@ if (["Épaule","Hanche"].includes(zoneName)) moves.push("Adduction/Abduction");
 if (zoneName==="Cheville / Pied") moves.push("Éversion/Inversion");
 if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) moves.push("Inclinaisons");
 if (zoneName==="Poignet / Main") moves.push("Inclinaison");
+if (zoneName==="Coude") moves.push("Prono/Supination");
 
 div.innerHTML = `
 <h4>Mobilité – ${zoneName}</h4>
@@ -659,6 +660,7 @@ ${tools.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join(
 <label>Critères d’évaluation</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
 ${ (zoneName==="Rachis lombaire" && mb.value==="Flexion/Extension") ? "" : `<label><input type="checkbox" value="Comparaison droite/gauche"> Comparaison droite/gauche</label>` }
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
@@ -693,6 +695,7 @@ ${list.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("
 <div class="checkbox-group">
 <label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
 ensureOtherText(div.querySelector(".proprio-tests"));
@@ -838,6 +841,7 @@ d.innerHTML = `
 <div class="checkbox-group">
 <label><input type="checkbox" value="Comparaison droite/gauche"> Comparaison droite/gauche</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
 </div>
@@ -915,6 +919,7 @@ d.innerHTML = `
 <div class="checkbox-group">
 <label><input type="checkbox" value="Moyenne par poste"> Moyenne par poste</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
 </div>
@@ -974,6 +979,7 @@ d.innerHTML = `
 <label><input type="checkbox" value="Ratio / poids du corps"> Ratio / poids du corps</label>
 <label><input type="checkbox" value="Ratio droite/gauche"> Ratio droite/gauche</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
 </div>
@@ -1025,6 +1031,7 @@ d.innerHTML = `
 <label><input type="checkbox" value="Ratio / poids du corps"> Ratio / poids du corps</label>
 <label><input type="checkbox" value="Ratio droite/gauche"> Ratio droite/gauche</label>
 <label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
 </div>
@@ -1058,49 +1065,22 @@ const hasAnyReturnToPlaySelected = () => (
 );
 
 const toggleCombatBlock = () => {
-const anyReturn = hasAnyReturnToPlaySelected();
-if (anyReturn) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
 }
-} else {
-if (combatBlock) { combatBlock.remove(); combatBlock=null; }
-}
 };
 
 const toggleGlobalsBlock = () => {
-const zones = selectedZones();
-const hasLower = zones.some(z=>lowerBody.includes(z));
-const hasHead = zones.some(z=>headNeck.includes(z));
-const logical = getLogicalZones();
-const any = logical.length>0;
-globalsSection.style.display = any ? "" : "none";
-if (!any) {
-globalBlocks.innerHTML = "";
-jumpsBlock = courseBlock = globalMIBlock = globalMSBlock = combatBlock = null;
-return;
-}
-// Sauts: si MI cochée
-if (hasLower) {
+globalsSection.style.display = "";
 if (!jumpsBlock) { jumpsBlock = buildJumpsBlock(); globalBlocks.appendChild(jumpsBlock); }
-} else if (jumpsBlock) { jumpsBlock.remove(); jumpsBlock=null; }
-// Course: si MI ou tête/rachis cochés
-if (hasLower || hasHead) {
 if (!courseBlock) { courseBlock = buildCourseBlock(); globalBlocks.appendChild(courseBlock); }
-} else if (courseBlock) { courseBlock.remove(); courseBlock=null; }
-// Globaux MI: si MI cochée
-if (hasLower) {
 if (!globalMIBlock) { globalMIBlock = buildGlobalMIBlock(); globalBlocks.appendChild(globalMIBlock); }
-} else if (globalMIBlock) { globalMIBlock.remove(); globalMIBlock=null; }
-// Globaux MS: si MS cochée
-const hasUpper = zones.some(z=>["Épaule","Coude","Poignet / Main"].includes(z));
-if (hasUpper) {
 if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendChild(globalMSBlock); }
-} else if (globalMSBlock) { globalMSBlock.remove(); globalMSBlock=null; }
-// Combat
 toggleCombatBlock();
 };
+
+toggleGlobalsBlock();
   
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
