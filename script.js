@@ -366,7 +366,7 @@ moves.push("Flexion/Extension","Inclinaison");
 } else if (zoneName==="Hanche") {
 moves.push("Flexion/Extension","Rotations","Adduction/Abduction");
 } else if (zoneName==="Coude") {
-moves.push("Flexion/Extension");
+moves.push("Flexion/Extension","Prono/Supination");
 } else if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) {
 moves.push("Flexion/Extension","Rotations","Inclinaisons");
 } else {
@@ -610,6 +610,7 @@ if (["Épaule","Hanche"].includes(zoneName)) moves.push("Adduction/Abduction");
 if (zoneName==="Cheville / Pied") moves.push("Éversion/Inversion");
 if (zoneName==="Rachis lombaire" || zoneName===headNeckTitle) moves.push("Inclinaisons");
 if (zoneName==="Poignet / Main") moves.push("Inclinaison");
+if (zoneName==="Coude") moves.push("Prono/Supination");
 
 div.innerHTML = `
 <h4>Mobilité – ${zoneName}</h4>
