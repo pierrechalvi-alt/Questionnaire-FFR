@@ -220,6 +220,31 @@ inp.addEventListener("change", () => toggleCombatBlock());
 ensureFreq();
 };
 
+// Variante pour blocs globaux : ne déclenche pas les toggles globaux/combat
+const initMomentGroupSimple = (scope) => {
+const freqGroup = scope?.querySelector(".type-moment");
+if (!freqGroup) return;
+const autreFreq = freqGroup.querySelector("input[value='Autre fréquence']");
+if (!autreFreq) return;
+
+const ensureFreq = () => {
+let wrap = freqGroup.querySelector(".other-wrap");
+if (autreFreq.checked) {
+if (!wrap) {
+wrap = document.createElement("div");
+wrap.className = "other-wrap";
+wrap.innerHTML = `<input type="text" class="other-input small" placeholder="Fréquence (précisez)" required>`;
+freqGroup.appendChild(wrap);
+}
+} else if (wrap) {
+wrap.remove();
+}
+};
+
+autreFreq.addEventListener("change", ensureFreq);
+ensureFreq();
+};
+
 // ---- Isocinétisme: sous-questions standardisées
 const attachIsokineticHandlers = (scope) => {
 const groups = scope.querySelectorAll(".tools-group");
@@ -853,7 +878,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroup(d);
+initMomentGroupSimple(d);
 return d;
 };
 
@@ -942,7 +967,7 @@ dDet.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroup(d);
+initMomentGroupSimple(d);
 return d;
 };
 
@@ -995,7 +1020,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroup(d);
+initMomentGroupSimple(d);
 return d;
 };
 
@@ -1049,7 +1074,7 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroup(d);
+initMomentGroupSimple(d);
 return d;
 };
 
