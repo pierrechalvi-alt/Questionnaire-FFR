@@ -122,7 +122,7 @@ const proprioByZone = {
 "Coude":[]
 };
 const questionnairesByZone = {
-"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","Autre"],
+"Genou":["KOOS","IKDC","Lysholm","Tegner","ACL-RSI","KOS-ADLS","LEFS","VISA","Autre"],
 "Hanche":["HAGOS","iHOT-12","HOOS","HOS","Autre"],
 "Épaule":["QuickDASH","DASH","SIRSI","ASES","SPADI","Oxford Shoulder Score","Autre"],
 "Coude":["Oxford Elbow Score","MEPS","DASH","QuickDASH","Autre"],
