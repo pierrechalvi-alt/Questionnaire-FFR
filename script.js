@@ -1058,49 +1058,22 @@ const hasAnyReturnToPlaySelected = () => (
 );
 
 const toggleCombatBlock = () => {
-const anyReturn = hasAnyReturnToPlaySelected();
-if (anyReturn) {
 if (!combatBlock) {
 combatBlock = buildCombatBlock();
 globalBlocks.appendChild(combatBlock);
 }
-} else {
-if (combatBlock) { combatBlock.remove(); combatBlock=null; }
-}
 };
 
 const toggleGlobalsBlock = () => {
-const zones = selectedZones();
-const hasLower = zones.some(z=>lowerBody.includes(z));
-const hasHead = zones.some(z=>headNeck.includes(z));
-const logical = getLogicalZones();
-const any = logical.length>0;
-globalsSection.style.display = any ? "" : "none";
-if (!any) {
-globalBlocks.innerHTML = "";
-jumpsBlock = courseBlock = globalMIBlock = globalMSBlock = combatBlock = null;
-return;
-}
-// Sauts: si MI cochée
-if (hasLower) {
+globalsSection.style.display = "";
 if (!jumpsBlock) { jumpsBlock = buildJumpsBlock(); globalBlocks.appendChild(jumpsBlock); }
-} else if (jumpsBlock) { jumpsBlock.remove(); jumpsBlock=null; }
-// Course: si MI ou tête/rachis cochés
-if (hasLower || hasHead) {
 if (!courseBlock) { courseBlock = buildCourseBlock(); globalBlocks.appendChild(courseBlock); }
-} else if (courseBlock) { courseBlock.remove(); courseBlock=null; }
-// Globaux MI: si MI cochée
-if (hasLower) {
 if (!globalMIBlock) { globalMIBlock = buildGlobalMIBlock(); globalBlocks.appendChild(globalMIBlock); }
-} else if (globalMIBlock) { globalMIBlock.remove(); globalMIBlock=null; }
-// Globaux MS: si MS cochée
-const hasUpper = zones.some(z=>["Épaule","Coude","Poignet / Main"].includes(z));
-if (hasUpper) {
 if (!globalMSBlock) { globalMSBlock = buildGlobalMSBlock(); globalBlocks.appendChild(globalMSBlock); }
-} else if (globalMSBlock) { globalMSBlock.remove(); globalMSBlock=null; }
-// Combat
 toggleCombatBlock();
 };
+
+toggleGlobalsBlock();
   
 /* ---------------------------------------------
 * VALIDATION + ENVOI GOOGLE FORM
