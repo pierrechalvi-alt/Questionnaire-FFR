@@ -902,11 +902,10 @@ d.innerHTML = `
 <label><input type="radio" name="course-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="course-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests de course utilisez-vous ?</label>
 
 <h4 class="subtle">Énergétiques</h4>
-<div class="checkbox-group">
+<div class="checkbox-group course-tests" data-family="ener">
 <label><input type="checkbox" value="Yoyo IR test 1"> Yoyo IR test 1</label>
 <label><input type="checkbox" value="Bronco"> Bronco</label>
 <label><input type="checkbox" value="Broken Bronco"> Broken Bronco</label>
@@ -916,7 +915,7 @@ ${getMomentSelectorHtml()}
 </div>
 
 <h4 class="subtle">Vitesse</h4>
-<div class="checkbox-group">
+<div class="checkbox-group course-tests" data-family="vit">
 <label><input type="checkbox" value="Sprint 10m"> Sprint 10m</label>
 <label><input type="checkbox" value="Sprint 20m"> Sprint 20m</label>
 <label><input type="checkbox" value="Sprint 30m"> Sprint 30m</label>
@@ -925,39 +924,14 @@ ${getMomentSelectorHtml()}
 </div>
 
 <h4 class="subtle">Changement de direction (COD)</h4>
-<div class="checkbox-group">
+<div class="checkbox-group course-tests" data-family="cod">
 <label><input type="checkbox" value="505"> 505</label>
 <label><input type="checkbox" value="T-Test"> T-Test</label>
 <label><input type="checkbox" value="Illinois"> Illinois</label>
 <label><input type="checkbox" value="ZigZag test"> ZigZag test</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
-
-<h4 class="subtle">Décélération</h4>
-<div class="checkbox-group yn" id="decel-yn">
-<label><input type="radio" name="decel-yn" value="Oui"> Oui</label>
-<label><input type="radio" name="decel-yn" value="Non"> Non</label>
-</div>
-<div class="slide" id="decel-detail">
-<input type="text" class="other-input small" placeholder="Précisez (type de test, distance, protocole…)" />
-</div>
-
-<label>Outils</label>
-<div class="checkbox-group course-tools">
-<label><input type="checkbox" value="Chronomètre"> Chronomètre</label>
-<label><input type="checkbox" value="Cellules"> Cellules</label>
-<label><input type="checkbox" value="GPS"> GPS</label>
-<label><input type="checkbox" value="1080 Sprint"> 1080 Sprint</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
-
-<label>Critères d’évaluation</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Moyenne par poste"> Moyenne par poste</label>
-<label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
-<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
+<div class="course-tests-details"></div>
 </div>
 `;
 const yn = d.querySelectorAll("input[name='course-yn']");
@@ -967,15 +941,57 @@ det.classList.toggle("show", r.value==="Oui" && r.checked);
 toggleCombatBlock();
 }));
 
-// Décélération toggle
-const dYN = d.querySelectorAll("input[name='decel-yn']");
-const dDet = d.querySelector("#decel-detail");
-dYN.forEach(r=>r.addEventListener("change",()=>{
-dDet.classList.toggle("show", r.value==="Oui" && r.checked);
-}));
-
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroupSimple(d);
+
+const details = d.querySelector(".course-tests-details");
+const buildCourseTestDetail = (testName, family) => {
+  const item = document.createElement("div");
+  item.className = "subcard slide show";
+  item.id = `course-test-${slug(family)}-${slug(testName)}`;
+  item.innerHTML = `
+<h5>${testName}</h5>
+${getMomentSelectorHtml()}
+<label>Outils</label>
+<div class="checkbox-group">
+<label><input type="checkbox" value="Chronomètre"> Chronomètre</label>
+<label><input type="checkbox" value="Cellules"> Cellules</label>
+<label><input type="checkbox" value="GPS"> GPS</label>
+<label><input type="checkbox" value="1080 Sprint"> 1080 Sprint</label>
+<label><input type="checkbox" value="Autre"> Autre</label>
+</div>
+<label>Paramètres étudiés</label>
+<div class="checkbox-group">
+<label><input type="checkbox" value="Temps"> Temps</label>
+<label><input type="checkbox" value="Distance"> Distance</label>
+<label><input type="checkbox" value="Vitesse"> Vitesse</label>
+<label><input type="checkbox" value="Accélération"> Accélération</label>
+<label><input type="checkbox" value="Décélération"> Décélération</label>
+<label><input type="checkbox" value="Autre"> Autre</label>
+</div>
+<label>Critères d’évaluation</label>
+<div class="checkbox-group">
+<label><input type="checkbox" value="Moyenne par poste"> Moyenne par poste</label>
+<label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
+<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
+<label><input type="checkbox" value="Autre"> Autre</label>
+</div>`;
+  initMomentGroup(item);
+  item.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+  return item;
+};
+
+d.querySelectorAll(".course-tests input[type='checkbox']").forEach(cb => {
+  cb.addEventListener("change", () => {
+    const family = cb.closest(".course-tests")?.dataset.family || "course";
+    const id = `course-test-${slug(family)}-${slug(cb.value)}`;
+    const exists = details.querySelector("#"+esc(id));
+    if (cb.checked) {
+      details.appendChild(buildCourseTestDetail(cb.value, family));
+    } else if (exists) {
+      exists.remove();
+    }
+  });
+});
 return d;
 };
 
@@ -1439,15 +1455,16 @@ const buildPayload = () => {
   if (course) {
     gb.course = { fait: gatherRadio(course) };
     if (gb.course.fait === "Oui") {
-      const groups = course.querySelectorAll("#course-detail .checkbox-group");
-      gb.course.tests_ener = listVals(groups[0].querySelectorAll("input:checked"));
-      gb.course.tests_vit = listVals(groups[1].querySelectorAll("input:checked"));
-      gb.course.tests_cod = listVals(groups[2].querySelectorAll("input:checked"));
-      const dYN = course.querySelector("input[name='decel-yn']:checked")?.value || "";
-      const dText = course.querySelector("#decel-detail .other-input")?.value?.trim() || "";
-      gb.course.deceleration = { fait: dYN, details: (dYN === "Oui") ? dText : "" };
-      gb.course.outils = listVals(groups[4].querySelectorAll("input:checked"));
-      gb.course.criteres = listVals(groups[5].querySelectorAll("input:checked"));
+      gb.course.tests_ener = listVals(course.querySelectorAll(".course-tests[data-family='ener'] input:checked"));
+      gb.course.tests_vit = listVals(course.querySelectorAll(".course-tests[data-family='vit'] input:checked"));
+      gb.course.tests_cod = listVals(course.querySelectorAll(".course-tests[data-family='cod'] input:checked"));
+      gb.course.details_par_test = [...course.querySelectorAll(".course-tests-details > .subcard")].map(t => ({
+        test: t.querySelector("h5")?.textContent?.trim() || "",
+        moments: listVals(t.querySelectorAll(".type-moment input:checked")),
+        outils: listVals(t.querySelectorAll(".checkbox-group")[1]?.querySelectorAll("input:checked") || []),
+        params: listVals(t.querySelectorAll(".checkbox-group")[2]?.querySelectorAll("input:checked") || []),
+        criteres: listVals(t.querySelectorAll(".checkbox-group")[3]?.querySelectorAll("input:checked") || [])
+      }));
 
       // Champs "Autre" course
       const otherInputs = course.querySelectorAll("input.other-input");
