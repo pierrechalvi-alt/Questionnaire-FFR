@@ -400,7 +400,6 @@ moves.push("Flexion/Extension");
 
 div.innerHTML = `
 <h4>Force – ${zoneName}</h4>
-${getMomentSelectorHtml()}
 <label>Quels mouvements évaluez-vous en force ?</label>
 <div class="checkbox-group force-moves">
 ${moves.map(m=>`<label><input type="checkbox" value="${m}"> ${m}</label>`).join("")}
@@ -421,6 +420,7 @@ block.className = "slide show";
 // GENOU: Flex/Ext -> Ischio/Quads
 if (zoneName==="Genou" && mb.value==="Flexion/Extension") {
 block.innerHTML = `<h5>${mb.value}</h5>
+${getMomentSelectorHtml()}
 <div class="knee-muscles"></div>`;
 const kWrap = block.querySelector(".knee-muscles");
 ["Ischiojambiers","Quadriceps"].forEach(musc => {
@@ -456,13 +456,15 @@ kWrap.appendChild(g);
 
 // HANCHE (Flex/Ext, Add/Abd) : OPC direct (avec isocinétisme)
 } else if (zoneName==="Hanche" && (mb.value==="Adduction/Abduction" || mb.value==="Flexion/Extension" || mb.value==="Rotations")) {
-block.innerHTML = `<h5>${mb.value}</h5>`;
+block.innerHTML = `<h5>${mb.value}</h5>
+${getMomentSelectorHtml()}`;
 const opc = createOPC("",{});
 block.appendChild(opc);
 
 // CHEVILLE : muscles + intrinseques
 } else if (zoneName==="Cheville / Pied" && mb.value==="Flexion/Extension") {
 block.innerHTML = `<h5>${mb.value}</h5>
+${getMomentSelectorHtml()}
 <div class="ankle-muscles"></div>`;
 const aWrap = block.querySelector(".ankle-muscles");
 ["Gastrocnémien","Soléaire"].forEach(musc => {
@@ -497,7 +499,8 @@ aWrap.appendChild(g);
 });
 
 } else if (zoneName==="Cheville / Pied" && mb.value==="Éversion/Inversion") {
-block.innerHTML = `<h5>${mb.value}</h5>`;
+block.innerHTML = `<h5>${mb.value}</h5>
+${getMomentSelectorHtml()}`;
 const g = document.createElement("div");
 g.className = "subcard";
 g.innerHTML = `<h6>Inverseurs/Éverseurs</h6>`;
@@ -524,7 +527,8 @@ g.appendChild(opc);
 block.appendChild(g);
 
 } else if (zoneName==="Cheville / Pied" && mb.value==="Intrinsèques du pied") {
-block.innerHTML = `<h5>${mb.value}</h5>`;
+block.innerHTML = `<h5>${mb.value}</h5>
+${getMomentSelectorHtml()}`;
 const g = document.createElement("div");
 g.className = "subcard";
 g.innerHTML = `<h6>Intrinsèques du pied</h6>`;
@@ -556,6 +560,7 @@ block.appendChild(g);
 } else if (zoneName==="Épaule" && mb.value==="ASH Test") {
 // ASH Test – positions + OPC SANS isocinétisme
 block.innerHTML = `<h5>ASH Test</h5>
+${getMomentSelectorHtml()}
 <label>Positions</label>
 <div class="checkbox-group">
 <label><input type="checkbox" value="I (180°)"> I (180°)</label>
@@ -586,7 +591,8 @@ block.appendChild(opc);
 
 } else {
 // Mouvement simple: outils/params/crit, cas spé
-block.innerHTML = `<h5>${mb.value}</h5>`;
+block.innerHTML = `<h5>${mb.value}</h5>
+${getMomentSelectorHtml()}`;
 
 // EXTRA TOOLS cas spé
 let extraTools = "";
@@ -611,6 +617,7 @@ block.appendChild(opc);
 }
 
 details.appendChild(block);
+initMomentGroup(block);
 } else if (exist) {
 exist.classList.remove("show");
 setTimeout(()=>exist.remove(),300);
@@ -639,7 +646,6 @@ if (zoneName==="Coude") moves.push("Prono/Supination");
 
 div.innerHTML = `
 <h4>Mobilité – ${zoneName}</h4>
-${getMomentSelectorHtml()}
 <label>Quels mouvements évaluez-vous en mobilité ?</label>
 <div class="checkbox-group mob-moves">
 ${moves.map(m=>`<label><input type="checkbox" value="${m}"> ${m}</label>`).join("")}
@@ -678,6 +684,7 @@ block.className = "slide show";
 const tools = mobilityToolsFor(zoneName, mb.value);
 block.innerHTML = `
 <h5>${mb.value}</h5>
+${getMomentSelectorHtml()}
 <label>Outils utilisés</label>
 <div class="checkbox-group tools-group">
 ${tools.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("")}
@@ -690,6 +697,7 @@ ${ (zoneName==="Rachis lombaire" && mb.value==="Flexion/Extension") ? "" : `<lab
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>`;
 details.appendChild(block);
+initMomentGroup(block);
 ensureOtherText(block.querySelector(".tools-group"));
 ensureOtherText(block.querySelectorAll(".checkbox-group")[1]);
 } else if (exist) {
