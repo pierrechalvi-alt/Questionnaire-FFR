@@ -1161,6 +1161,7 @@ const resultMsg = byId("resultMessage");
 const submitBtn = byId("submitBtn");
 const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3sv7z3aDWRJckLz9KMpDnsmg3-4zj-MuCUHzmpfl-u3xFdQ/formResponse";
 const GOOGLE_ENTRY_KEY = "entry.1017475409";
+const MAX_FORM_PAYLOAD_CHARS = 180000;
 
 const gatherChecked = scope => [...scope.querySelectorAll("input[type='checkbox']:checked")].map(i=>i.value);
 const gatherRadio = scope => (scope.querySelector("input[type='radio']:checked")||{}).value || "";
@@ -1610,8 +1611,28 @@ try {
   console.error(err);
   return;
 }
+// Google Forms tronque/ignore parfois les contenus trop longs sur un seul champ.
+// On retire les dumps volumineux et on protège la taille max.
+const payloadForSend = structuredClone(payload);
+delete payloadForSend.raw_dump;
+delete payloadForSend.reponses_exhaustives;
+
+let serialized = JSON.stringify(payloadForSend);
+if (serialized.length > MAX_FORM_PAYLOAD_CHARS) {
+  // Dernière protection : on retire les champs de synthèse non essentiels
+  delete payloadForSend.synthese_lisible;
+  delete payloadForSend.synthese_par_type;
+  serialized = JSON.stringify(payloadForSend);
+}
+
+if (serialized.length > MAX_FORM_PAYLOAD_CHARS) {
+  resultMsg.style.color = "#d11c1c";
+  resultMsg.textContent = "⚠️ Réponses trop volumineuses pour Google Forms. Réduisez le nombre de champs “Autre” détaillés.";
+  return;
+}
+
 const fd = new FormData();
-fd.append(GOOGLE_ENTRY_KEY, JSON.stringify(payload));
+fd.append(GOOGLE_ENTRY_KEY, serialized);
 
 try{
 await fetch(GOOGLE_FORM_URL, {method:"POST",mode:"no-cors",body:fd});
