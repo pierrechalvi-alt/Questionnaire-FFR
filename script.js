@@ -839,9 +839,8 @@ d.innerHTML = `
 <label><input type="radio" name="jumps-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="jumps-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests de sauts utilisez-vous ?</label>
-<div class="checkbox-group">
+<div class="checkbox-group jump-tests">
 <label><input type="checkbox" value="CMJ (Countermovement Jump)"> CMJ (Countermovement Jump)</label>
 <label><input type="checkbox" value="Squat Jump"> Squat Jump</label>
 <label><input type="checkbox" value="Drop Jump"> Drop Jump</label>
@@ -851,33 +850,7 @@ ${getMomentSelectorHtml()}
 <label><input type="checkbox" value="Side Hop"> Side Hop</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
-<label>Paramètres étudiés</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Force max (N)"> Force max (N)</label>
-<label><input type="checkbox" value="Hauteur (cm)"> Hauteur (cm)</label>
-<label><input type="checkbox" value="Temps de vol (ms)"> Temps de vol (ms)</label>
-<label><input type="checkbox" value="Temps de contact (ms)"> Temps de contact (ms)</label>
-<label><input type="checkbox" value="Pic de puissance (W)"> Pic de puissance (W)</label>
-<label><input type="checkbox" value="Puissance relative (W/kg)"> Puissance relative (W/kg)</label>
-<label><input type="checkbox" value="RFD (Rate of Force Development)"> RFD (Rate of Force Development)</label>
-<label><input type="checkbox" value="RSI (Reactive Strength Index)"> RSI (Reactive Strength Index)</label>
-<label><input type="checkbox" value="Distance (cm)"> Distance (cm)</label>
-</div>
-<label>Outils</label>
-<div class="checkbox-group jump-tools">
-<label><input type="checkbox" value="Plateforme de force"> Plateforme de force</label>
-<label><input type="checkbox" value="Centimétrie"> Centimétrie</label>
-<label><input type="checkbox" value="Sans outil"> Sans outil</label>
-<label><input type="checkbox" value="Encodeur linéaire"> Encodeur linéaire</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
-<label>Critères d’évaluation</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Comparaison droite/gauche"> Comparaison droite/gauche</label>
-<label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
-<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
+<div class="jump-tests-details"></div>
 </div>
 `;
 const yn = d.querySelectorAll("input[name='jumps-yn']");
@@ -886,7 +859,26 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroupSimple(d);
+const details = d.querySelector(".jump-tests-details");
+d.querySelectorAll(".jump-tests input[type='checkbox']").forEach(cb=>{
+cb.addEventListener("change",()=>{
+const id = `jump-test-${slug(cb.value)}`;
+const exists = details.querySelector("#"+esc(id));
+if (cb.checked) {
+  const item = document.createElement("div");
+  item.className = "subcard slide show";
+  item.id = id;
+  item.innerHTML = `<h5>${cb.value}</h5>
+${getMomentSelectorHtml()}
+<label>Outils</label><div class="checkbox-group"><label><input type="checkbox" value="Plateforme de force"> Plateforme de force</label><label><input type="checkbox" value="Centimétrie"> Centimétrie</label><label><input type="checkbox" value="Sans outil"> Sans outil</label><label><input type="checkbox" value="Encodeur linéaire"> Encodeur linéaire</label><label><input type="checkbox" value="Autre"> Autre</label></div>
+<label>Paramètres étudiés</label><div class="checkbox-group"><label><input type="checkbox" value="Force max (N)"> Force max (N)</label><label><input type="checkbox" value="Hauteur (cm)"> Hauteur (cm)</label><label><input type="checkbox" value="Temps de vol (ms)"> Temps de vol (ms)</label><label><input type="checkbox" value="Temps de contact (ms)"> Temps de contact (ms)</label><label><input type="checkbox" value="Pic de puissance (W)"> Pic de puissance (W)</label><label><input type="checkbox" value="Puissance relative (W/kg)"> Puissance relative (W/kg)</label><label><input type="checkbox" value="RFD (Rate of Force Development)"> RFD (Rate of Force Development)</label><label><input type="checkbox" value="RSI (Reactive Strength Index)"> RSI (Reactive Strength Index)</label><label><input type="checkbox" value="Distance (cm)"> Distance (cm)</label><label><input type="checkbox" value="Autre"> Autre</label></div>
+<label>Critères d’évaluation</label><div class="checkbox-group"><label><input type="checkbox" value="Comparaison droite/gauche"> Comparaison droite/gauche</label><label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label><label><input type="checkbox" value="Valeur normative"> Valeur normative</label><label><input type="checkbox" value="Autre"> Autre</label></div>`;
+  initMomentGroup(item);
+  item.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
+  details.appendChild(item);
+} else if (exists) exists.remove();
+});
+});
 return d;
 };
 
@@ -1015,27 +1007,7 @@ ${getMomentSelectorHtml()}
 <label><input type="checkbox" value="Soulevé de terre"> Soulevé de terre</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
-<label>Outils</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Sans outil"> Sans outil</label>
-<label><input type="checkbox" value="Encodeur linéaire"> Encodeur linéaire</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
-<label>Paramètres étudiés</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Isométrie"> Isométrie</label>
-<label><input type="checkbox" value="Répétition maximale (RM)"> Répétition maximale (RM)</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
-<label>Critères d’évaluation</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label>
-<label><input type="checkbox" value="Ratio / poids du corps"> Ratio / poids du corps</label>
-<label><input type="checkbox" value="Ratio droite/gauche"> Ratio droite/gauche</label>
-<label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
-<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
+<div class="mi-tests-details"></div>
 </div>
 `;
 const yn = d.querySelectorAll("input[name='mi-yn']");
@@ -1044,7 +1016,11 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroupSimple(d);
+const miDetails = d.querySelector(".mi-tests-details");
+d.querySelectorAll(".mi-tests input[type='checkbox']").forEach(cb=>cb.addEventListener("change",()=>{
+const id = `mi-test-${slug(cb.value)}`; const exists = miDetails.querySelector("#"+esc(id));
+if (cb.checked){ const item=document.createElement("div"); item.className="subcard slide show"; item.id=id; item.innerHTML=`<h5>${cb.value}</h5>${getMomentSelectorHtml()}<label>Outils</label><div class="checkbox-group"><label><input type="checkbox" value="Sans outil"> Sans outil</label><label><input type="checkbox" value="Encodeur linéaire"> Encodeur linéaire</label><label><input type="checkbox" value="Autre"> Autre</label></div><label>Paramètres étudiés</label><div class="checkbox-group"><label><input type="checkbox" value="Isométrie"> Isométrie</label><label><input type="checkbox" value="Répétition maximale (RM)"> Répétition maximale (RM)</label><label><input type="checkbox" value="Autre"> Autre</label></div><label>Critères d’évaluation</label><div class="checkbox-group"><label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label><label><input type="checkbox" value="Ratio / poids du corps"> Ratio / poids du corps</label><label><input type="checkbox" value="Ratio droite/gauche"> Ratio droite/gauche</label><label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label><label><input type="checkbox" value="Valeur normative"> Valeur normative</label><label><input type="checkbox" value="Autre"> Autre</label></div>`; initMomentGroup(item); item.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g)); miDetails.appendChild(item);} else if (exists) exists.remove();
+}));
 return d;
 };
 
@@ -1062,34 +1038,14 @@ d.innerHTML = `
 <div class="slide" id="ms-detail">
 ${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
-<div class="checkbox-group">
+<div class="checkbox-group ms-tests">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
 <label><input type="checkbox" value="Traction"> Traction</label>
 <label><input type="checkbox" value="Tirage"> Tirage</label>
 <label><input type="checkbox" value="Force grip"> Force grip</label>
 <label><input type="checkbox" value="Autre"> Autre</label>
 </div>
-<label>Outils</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Sans outil"> Sans outil</label>
-<label><input type="checkbox" value="Encodeur linéaire"> Encodeur linéaire</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
-<label>Paramètres étudiés</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Isométrie"> Isométrie</label>
-<label><input type="checkbox" value="Répétition maximale (RM)"> Répétition maximale (RM)</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
-<label>Critères d’évaluation</label>
-<div class="checkbox-group">
-<label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label>
-<label><input type="checkbox" value="Ratio / poids du corps"> Ratio / poids du corps</label>
-<label><input type="checkbox" value="Ratio droite/gauche"> Ratio droite/gauche</label>
-<label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label>
-<label><input type="checkbox" value="Valeur normative"> Valeur normative</label>
-<label><input type="checkbox" value="Autre"> Autre</label>
-</div>
+<div class="ms-tests-details"></div>
 </div>
 `;
 const yn = d.querySelectorAll("input[name='ms-yn']");
@@ -1098,7 +1054,11 @@ yn.forEach(r=>r.addEventListener("change",()=>{
 det.classList.toggle("show", r.value==="Oui" && r.checked);
 }));
 d.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g));
-initMomentGroupSimple(d);
+const msDetails = d.querySelector(".ms-tests-details");
+d.querySelectorAll(".ms-tests input[type='checkbox']").forEach(cb=>cb.addEventListener("change",()=>{
+const id = `ms-test-${slug(cb.value)}`; const exists = msDetails.querySelector("#"+esc(id));
+if (cb.checked){ const item=document.createElement("div"); item.className="subcard slide show"; item.id=id; item.innerHTML=`<h5>${cb.value}</h5>${getMomentSelectorHtml()}<label>Outils</label><div class="checkbox-group"><label><input type="checkbox" value="Sans outil"> Sans outil</label><label><input type="checkbox" value="Encodeur linéaire"> Encodeur linéaire</label><label><input type="checkbox" value="Autre"> Autre</label></div><label>Paramètres étudiés</label><div class="checkbox-group"><label><input type="checkbox" value="Isométrie"> Isométrie</label><label><input type="checkbox" value="Répétition maximale (RM)"> Répétition maximale (RM)</label><label><input type="checkbox" value="Autre"> Autre</label></div><label>Critères d’évaluation</label><div class="checkbox-group"><label><input type="checkbox" value="Moyenne du groupe"> Moyenne du groupe</label><label><input type="checkbox" value="Ratio / poids du corps"> Ratio / poids du corps</label><label><input type="checkbox" value="Ratio droite/gauche"> Ratio droite/gauche</label><label><input type="checkbox" value="Valeur de référence individuelle"> Valeur de référence individuelle</label><label><input type="checkbox" value="Valeur normative"> Valeur normative</label><label><input type="checkbox" value="Autre"> Autre</label></div>`; initMomentGroup(item); item.querySelectorAll(".checkbox-group").forEach(g=>ensureOtherText(g)); msDetails.appendChild(item);} else if (exists) exists.remove();
+}));
 return d;
 };
 
@@ -1435,11 +1395,14 @@ const buildPayload = () => {
   if (jumps) {
     gb.sauts = { fait: gatherRadio(jumps) };
     if (gb.sauts.fait === "Oui") {
-      const groups = jumps.querySelectorAll("#jumps-detail .checkbox-group");
-      gb.sauts.tests = listVals(groups[0].querySelectorAll("input:checked"));
-      gb.sauts.params = listVals(groups[1].querySelectorAll("input:checked"));
-      gb.sauts.outils = listVals(groups[2].querySelectorAll("input:checked"));
-      gb.sauts.criteres = listVals(groups[3].querySelectorAll("input:checked"));
+      gb.sauts.tests = listVals(jumps.querySelectorAll(".jump-tests input:checked"));
+      gb.sauts.details_par_test = [...jumps.querySelectorAll(".jump-tests-details > .subcard")].map(t => ({
+        test: t.querySelector("h5")?.textContent?.trim() || "",
+        moments: listVals(t.querySelectorAll(".type-moment input:checked")),
+        outils: listVals(t.querySelectorAll(".checkbox-group")[1]?.querySelectorAll("input:checked") || []),
+        params: listVals(t.querySelectorAll(".checkbox-group")[2]?.querySelectorAll("input:checked") || []),
+        criteres: listVals(t.querySelectorAll(".checkbox-group")[3]?.querySelectorAll("input:checked") || [])
+      }));
 
       // Champs "Autre" sauts
       const otherInputs = jumps.querySelectorAll("input.other-input");
@@ -1480,11 +1443,14 @@ const buildPayload = () => {
   if (mi) {
     gb.mi = { fait: gatherRadio(mi) };
     if (gb.mi.fait === "Oui") {
-      const groups = mi.querySelectorAll("#mi-detail .checkbox-group");
-      gb.mi.tests = listVals(groups[0].querySelectorAll("input:checked"));
-      gb.mi.outils = listVals(groups[1].querySelectorAll("input:checked"));
-      gb.mi.params = listVals(groups[2].querySelectorAll("input:checked"));
-      gb.mi.criteres = listVals(groups[3].querySelectorAll("input:checked"));
+      gb.mi.tests = listVals(mi.querySelectorAll(".mi-tests input:checked"));
+      gb.mi.details_par_test = [...mi.querySelectorAll(".mi-tests-details > .subcard")].map(t => ({
+        test: t.querySelector("h5")?.textContent?.trim() || "",
+        moments: listVals(t.querySelectorAll(".type-moment input:checked")),
+        outils: listVals(t.querySelectorAll(".checkbox-group")[1]?.querySelectorAll("input:checked") || []),
+        params: listVals(t.querySelectorAll(".checkbox-group")[2]?.querySelectorAll("input:checked") || []),
+        criteres: listVals(t.querySelectorAll(".checkbox-group")[3]?.querySelectorAll("input:checked") || [])
+      }));
 
       // Champs "Autre" MI
       const otherInputs = mi.querySelectorAll("input.other-input");
@@ -1500,11 +1466,14 @@ const buildPayload = () => {
   if (ms) {
     gb.ms = { fait: gatherRadio(ms) };
     if (gb.ms.fait === "Oui") {
-      const groups = ms.querySelectorAll("#ms-detail .checkbox-group");
-      gb.ms.tests = listVals(groups[0].querySelectorAll("input:checked"));
-      gb.ms.outils = listVals(groups[1].querySelectorAll("input:checked"));
-      gb.ms.params = listVals(groups[2].querySelectorAll("input:checked"));
-      gb.ms.criteres = listVals(groups[3].querySelectorAll("input:checked"));
+      gb.ms.tests = listVals(ms.querySelectorAll(".ms-tests input:checked"));
+      gb.ms.details_par_test = [...ms.querySelectorAll(".ms-tests-details > .subcard")].map(t => ({
+        test: t.querySelector("h5")?.textContent?.trim() || "",
+        moments: listVals(t.querySelectorAll(".type-moment input:checked")),
+        outils: listVals(t.querySelectorAll(".checkbox-group")[1]?.querySelectorAll("input:checked") || []),
+        params: listVals(t.querySelectorAll(".checkbox-group")[2]?.querySelectorAll("input:checked") || []),
+        criteres: listVals(t.querySelectorAll(".checkbox-group")[3]?.querySelectorAll("input:checked") || [])
+      }));
 
       // Champs "Autre" MS
       const otherInputs = ms.querySelectorAll("input.other-input");
