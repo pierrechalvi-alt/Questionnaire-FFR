@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy-primary.outputs.page_url || steps.deploy-retry.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy (primary)
+        id: deploy-primary
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Wait before retry
+        if: steps.deploy-primary.outcome == 'failure'
+        run: sleep 20
+
+      - name: Deploy (retry once)
+        id: deploy-retry
+        if: steps.deploy-primary.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+
+      - name: Fail if all deploy attempts failed
+        if: steps.deploy-primary.outcome == 'failure' && steps.deploy-retry.outcome == 'failure'
+        run: |
+          echo "Primary and retry deployment attempts both failed." >&2
+          exit 1
