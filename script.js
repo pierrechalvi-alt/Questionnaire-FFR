@@ -999,9 +999,8 @@ d.innerHTML = `
 <label><input type="radio" name="mi-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="mi-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
-<div class="checkbox-group">
+<div class="checkbox-group mi-tests">
 <label><input type="checkbox" value="Squat"> Squat</label>
 <label><input type="checkbox" value="Montée de banc"> Montée de banc</label>
 <label><input type="checkbox" value="Soulevé de terre"> Soulevé de terre</label>
@@ -1036,7 +1035,6 @@ d.innerHTML = `
 <label><input type="radio" name="ms-yn" value="Non"> Non</label>
 </div>
 <div class="slide" id="ms-detail">
-${getMomentSelectorHtml()}
 <label>Quels tests ?</label>
 <div class="checkbox-group ms-tests">
 <label><input type="checkbox" value="Développé couché"> Développé couché</label>
