@@ -1213,7 +1213,7 @@ const buildPayload = () => {
     const getTypeMoments = (typeValue) => {
       const block = sec.querySelector(`#sub-${slug(zone)}-${slug(typeValue)}`);
       if (!block) return [];
-      return gatherChecked(block.querySelector(".type-moment"));
+      return [...new Set(listVals(block.querySelectorAll(".type-moment input:checked")))];
     };
 
     zoneData.types.forEach(typeValue => {
@@ -1231,6 +1231,7 @@ const buildPayload = () => {
 
         const data = {
           mouvement: mv,
+          moments: listVals(moveBlock.querySelectorAll(".type-moment input:checked")),
           outils: listVals(moveBlock.querySelectorAll(".tools-group input:checked")),
           tests: listVals(moveBlock.querySelectorAll(".tests-group input:checked")),
           params: listVals(moveBlock.querySelectorAll(".params-group input:checked")),
@@ -1261,6 +1262,7 @@ const buildPayload = () => {
 
         const data = {
           mouvement: mv,
+          moments: listVals(moveBlock.querySelectorAll(".type-moment input:checked")),
           outils: listVals(moveBlock.querySelectorAll(".tools-group input:checked")),
           criteres: listVals((moveBlock.querySelectorAll(".checkbox-group")[1] || moveBlock).querySelectorAll("input:checked"))
         };
