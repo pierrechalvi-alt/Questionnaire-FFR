@@ -18,6 +18,7 @@ Le script accepte aussi les réponses Google Forms déjà liées au Sheet lorsqu
 2. Extensions → Apps Script.
 3. Coller le contenu de `Code.gs` dans l'éditeur Apps Script.
    - Si tu veux récupérer uniquement la version complète dédiée au rendu visuel, le même code est aussi fourni dans `Code-rendu-equipes.gs`.
+   - Important: merger le fichier sur GitHub ne met pas automatiquement à jour le projet Apps Script attaché au Sheet. Il faut aussi copier/coller ou pousser ce code dans l'éditeur Apps Script, puis enregistrer.
 4. Déployer → Nouveau déploiement → **Application Web**.
    - Exécuter en tant que: **Moi**
    - Qui a accès: **Toute personne ayant le lien**
@@ -45,7 +46,7 @@ Si les réponses arrivent dans l'onglet `Form_Responses` avec le JSON dans la co
    - méthode alternative: dans Apps Script, choisir la fonction courte `genererRenduEquipes` dans la liste déroulante puis cliquer sur `Exécuter`.
 5. Optionnel: créer un déclencheur installable sur `onFormSubmit` pour ajouter automatiquement une fiche à chaque nouvelle réponse.
 
-> Si un e-mail indique `Script function not found: doGet`, cela signifie généralement qu'un ancien déclencheur ou un déploiement essaie d'appeler `doGet`. Le fichier fournit maintenant une fonction `doGet` neutre pour éviter cette erreur, mais le rendu doit être lancé via `genererRenduEquipes` ou le menu `Rendu équipes`.
+> Si un e-mail indique `Script function not found: doGet`, cela signifie généralement que le projet Apps Script réellement attaché au Sheet n'a pas encore reçu la dernière version du code, ou qu'un ancien déclencheur `open` pointe vers `doGet`. Le fichier fournit maintenant une fonction `doGet` neutre pour éviter cette erreur, mais le rendu doit être lancé via `genererRenduEquipes` ou le menu `Rendu équipes`. Dans Apps Script > Déclencheurs, supprimer tout déclencheur `open` associé à `doGet`; le menu est géré par `onOpen` automatiquement.
 
 ## Rendu généré
 Pour chaque équipe, `Rendu_Equipes` génère:
