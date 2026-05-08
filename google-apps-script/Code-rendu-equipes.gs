@@ -157,20 +157,59 @@ function onFormSubmit(e) {
 }
 
 function readFormResponsePayloads_(ss) {
-  const sh = ss.getSheetByName(SHEETS.formResponses);
-  if (!sh || sh.getLastRow() < 2) return [];
+  const sh = findFormResponsesSheet_(ss);
+  if (!sh) {
+    throw new Error('Onglet de réponses introuvable. Renomme l’onglet des réponses en "' + SHEETS.formResponses + '" ou vérifie qu’une colonne "' + FORM_RESPONSE_CONFIG.payloadHeader + '" existe.');
+  }
+
+  if (sh.getLastRow() < 2) return [];
 
   const values = sh.getDataRange().getValues();
   const headers = values[0].map(String);
-  const timestampIndex = headers.indexOf(FORM_RESPONSE_CONFIG.timestampHeader);
-  const payloadIndex = headers.indexOf(FORM_RESPONSE_CONFIG.payloadHeader);
+  const timestampIndex = findHeaderIndex_(headers, [FORM_RESPONSE_CONFIG.timestampHeader, 'Timestamp', 'Date']);
+  const payloadIndex = findHeaderIndex_(headers, [FORM_RESPONSE_CONFIG.payloadHeader, 'Repondant', 'Payload', 'JSON']);
   if (payloadIndex === -1) {
-    throw new Error('Colonne JSON introuvable: ' + FORM_RESPONSE_CONFIG.payloadHeader);
+    throw new Error('Colonne JSON introuvable: "' + FORM_RESPONSE_CONFIG.payloadHeader + '". Colonnes trouvées: ' + headers.join(', '));
   }
 
   return values.slice(1)
     .map((row, index) => buildSubmissionFromCell_(row[payloadIndex], timestampIndex >= 0 ? row[timestampIndex] : '', index + 2))
     .filter(Boolean);
+}
+
+function findFormResponsesSheet_(ss) {
+  const configured = ss.getSheetByName(SHEETS.formResponses);
+  if (configured) return configured;
+
+  const sheets = ss.getSheets();
+  for (let index = 0; index < sheets.length; index += 1) {
+    const sh = sheets[index];
+    if (sh.getLastRow() < 1) continue;
+    const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+    if (findHeaderIndex_(headers, [FORM_RESPONSE_CONFIG.payloadHeader, 'Repondant', 'Payload', 'JSON']) !== -1) {
+      return sh;
+    }
+  }
+
+  return null;
+}
+
+function findHeaderIndex_(headers, candidates) {
+  const normalizedHeaders = headers.map(normalizeHeader_);
+  for (let index = 0; index < candidates.length; index += 1) {
+    const normalizedCandidate = normalizeHeader_(candidates[index]);
+    const foundIndex = normalizedHeaders.indexOf(normalizedCandidate);
+    if (foundIndex !== -1) return foundIndex;
+  }
+  return -1;
+}
+
+function normalizeHeader_(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
 }
 
 function readSubmittedPayload_(ss, e) {
@@ -184,7 +223,14 @@ function buildSubmissionFromCell_(cellValue, timestamp, rowNumber) {
   const raw = String(cellValue || '').trim();
   if (!raw) return null;
 
-  const payload = JSON.parse(raw);
+  let payload = JSON.parse(raw);
+  if (typeof payload === 'string') {
+    payload = JSON.parse(payload);
+  }
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('JSON non exploitable à la ligne ' + rowNumber + '. La cellule "' + FORM_RESPONSE_CONFIG.payloadHeader + '" doit contenir un objet JSON.');
+  }
+
   const submissionId = payload.submission_id || makeSubmissionId_(payload, timestamp, rowNumber);
   return { payload, timestamp, submissionId };
 }
@@ -205,6 +251,13 @@ function renderTeamReports_(submissions, options) {
     applyReportCanvas_(sh);
   }
 
+  if (!submissions.length) {
+    writeEmptyReportState_(sh);
+    sh.setFrozenRows(0);
+    sh.activate();
+    return;
+  }
+
   let row = shouldAppend ? Math.max(1, sh.getLastRow() + REPORT_LAYOUT.gap) : 1;
   submissions.forEach((submission) => {
     row = renderSingleTeamReport_(sh, row, submission.payload, submission.timestamp, submission.submissionId);
@@ -213,6 +266,30 @@ function renderTeamReports_(submissions, options) {
 
   sh.setFrozenRows(0);
   sh.activate();
+}
+
+function writeEmptyReportState_(sh) {
+  const message = [
+    'Aucune réponse exploitable trouvée pour générer le rendu.',
+    '',
+    'À vérifier :',
+    '1. L’onglet des réponses contient au moins une ligne de réponse sous l’en-tête.',
+    '2. Une colonne s’appelle "' + FORM_RESPONSE_CONFIG.payloadHeader + '" et contient le JSON complet.',
+    '3. Si l’onglet ne s’appelle pas "' + SHEETS.formResponses + '", le script peut aussi le détecter automatiquement grâce à la colonne "' + FORM_RESPONSE_CONFIG.payloadHeader + '".',
+    '4. Le JSON doit commencer par { et contenir au minimum une clé comme "club".'
+  ].join('\n');
+
+  const range = sh.getRange(2, 2, 8, 8).merge();
+  range
+    .setValue(message)
+    .setBackground(REPORT_THEME.white)
+    .setFontColor(REPORT_THEME.navy)
+    .setFontSize(13)
+    .setFontWeight('bold')
+    .setHorizontalAlignment('left')
+    .setVerticalAlignment('middle')
+    .setBorder(true, true, true, true, false, false, REPORT_THEME.red, SpreadsheetApp.BorderStyle.SOLID_THICK);
+  sh.setRowHeights(2, 8, 36);
 }
 
 function applyReportCanvas_(sh) {

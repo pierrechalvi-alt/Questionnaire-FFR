@@ -48,6 +48,18 @@ Si les réponses arrivent dans l'onglet `Form_Responses` avec le JSON dans la co
 
 > Si un e-mail indique `Script function not found: doGet`, cela signifie généralement que le projet Apps Script réellement attaché au Sheet n'a pas encore reçu la dernière version du code, ou qu'un ancien déclencheur `open` pointe vers `doGet`. Le fichier fournit maintenant une fonction `doGet` neutre pour éviter cette erreur, mais le rendu doit être lancé via `genererRenduEquipes` ou le menu `Rendu équipes`. Dans Apps Script > Déclencheurs, supprimer tout déclencheur `open` associé à `doGet`; le menu est géré par `onOpen` automatiquement.
 
+
+## Dépannage: onglet `Rendu_Equipes` tout bleu
+Si l'onglet `Rendu_Equipes` apparaît mais reste vide ou entièrement bleu, cela veut dire que le script s'est lancé mais n'a trouvé aucune réponse exploitable.
+
+À vérifier dans cet ordre:
+1. L'onglet de réponses contient au moins une ligne sous les en-têtes.
+2. Une colonne s'appelle `Répondant` et contient le JSON complet du questionnaire.
+3. Le JSON commence par `{` et contient au minimum des clés comme `club`, `niveau`, `zones_details`.
+4. Si l'onglet de réponses ne s'appelle pas `Form_Responses`, le script essaie maintenant de le détecter automatiquement grâce à la colonne `Répondant`.
+
+Quand aucune réponse exploitable n'est trouvée, `Rendu_Equipes` affiche désormais un bloc d'aide au lieu de rester bleu vide.
+
 ## Rendu généré
 Pour chaque équipe, `Rendu_Equipes` génère:
 - un bloc structure: club, niveau, kinésithérapeute, préparateur physique;
