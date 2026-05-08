@@ -279,9 +279,15 @@ function renderTeamReports_(submissions, options) {
 }
 
 function resetReportSheet_(sh) {
-  sh.getDataRange().breakApart();
+  breakApartAllMergedRanges_(sh);
   sh.clear();
   applyReportCanvas_(sh);
+}
+
+function breakApartAllMergedRanges_(sh) {
+  const wholeSheet = sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns());
+  const mergedRanges = wholeSheet.getMergedRanges();
+  mergedRanges.forEach((range) => range.breakApart());
 }
 
 function writeReportIndexHeader_(sh) {
