@@ -15,8 +15,12 @@ const SHEETS = {
   stats: 'Stats_Zones',
   dashboard: 'Dashboard',
   formResponses: 'Form_Responses',
-  rendered: 'Rendu_Equipes'
+  rendered: 'Rendu_Equipes',
+  summary: 'Synthese_Equipes',
+  teamReportPrefix: 'Équipe - '
 };
+
+const LEGACY_VISUAL_SHEETS = [SHEETS.raw, SHEETS.teams, SHEETS.details, SHEETS.stats, SHEETS.dashboard];
 
 const FORM_RESPONSE_CONFIG = {
   timestampHeader: 'Horodateur',
@@ -71,58 +75,9 @@ function genererRenduEquipes() {
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents || '{}');
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    const shRaw = getOrCreateSheet_(ss, SHEETS.raw, [
-      'timestamp', 'submission_id', 'club', 'niveau', 'prep_nom', 'prep_prenom', 'kine_nom', 'kine_prenom', 'json_payload'
-    ]);
-
-    const shTeams = getOrCreateSheet_(ss, SHEETS.teams, [
-      'submission_id', 'timestamp', 'club', 'niveau', 'preparateur', 'kine', 'zones_selectionnees', 'barrieres', 'raisons'
-    ]);
-
-    const shDetails = getOrCreateSheet_(ss, SHEETS.details, [
-      'submission_id', 'timestamp', 'club', 'niveau', 'zone', 'type_test', 'moments', 'details'
-    ]);
-
     const timestamp = new Date();
     const submissionId = payload.submission_id || ('SUB-' + new Date().getTime());
-    const prepNom = (payload.preparateur && payload.preparateur.nom) || '';
-    const prepPrenom = (payload.preparateur && payload.preparateur.prenom) || '';
-    const kineNom = (payload.kine && payload.kine.nom) || '';
-    const kinePrenom = (payload.kine && payload.kine.prenom) || '';
 
-    shRaw.appendRow([
-      timestamp,
-      submissionId,
-      payload.club || '',
-      payload.niveau || '',
-      prepNom,
-      prepPrenom,
-      kineNom,
-      kinePrenom,
-      JSON.stringify(payload)
-    ]);
-
-    shTeams.appendRow([
-      submissionId,
-      timestamp,
-      payload.club || '',
-      payload.niveau || '',
-      [prepNom, prepPrenom].join(' ').trim(),
-      [kineNom, kinePrenom].join(' ').trim(),
-      (payload.zones || []).join(', '),
-      (payload.barrieres || []).join(', '),
-      (payload.raisons || []).join(', ')
-    ]);
-
-    const rows = buildDetailRows_(payload, submissionId, timestamp);
-    if (rows.length) {
-      shDetails.getRange(shDetails.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-    }
-
-    refreshStats_(ss);
-    styleAllSheets_(ss);
     renderTeamReports_([{ payload, timestamp, submissionId }], { append: true });
 
     return jsonResponse_({ ok: true, submission_id: submissionId });
@@ -242,30 +197,141 @@ function makeSubmissionId_(payload, timestamp, rowNumber) {
 
 function renderTeamReports_(submissions, options) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = getOrCreateSheet_(ss, SHEETS.rendered, []);
+  const indexSheet = getOrCreateSheet_(ss, SHEETS.rendered, []);
+  const summarySheet = getOrCreateSheet_(ss, SHEETS.summary, []);
   const shouldAppend = options && options.append;
 
+  deleteLegacyVisualSheets_(ss);
+
   if (!shouldAppend) {
-    sh.getDataRange().breakApart();
-    sh.clear();
-    applyReportCanvas_(sh);
+    deleteGeneratedTeamReportSheets_(ss);
+    resetReportSheet_(indexSheet);
+  } else if (indexSheet.getLastRow() === 0) {
+    resetReportSheet_(indexSheet);
   }
 
+  resetReportSheet_(summarySheet);
+
   if (!submissions.length) {
-    writeEmptyReportState_(sh);
-    sh.setFrozenRows(0);
-    sh.activate();
+    writeEmptyReportState_(indexSheet);
+    writeEmptyReportState_(summarySheet);
+    indexSheet.setFrozenRows(0);
+    summarySheet.setFrozenRows(0);
+    indexSheet.activate();
     return;
   }
 
-  let row = shouldAppend ? Math.max(1, sh.getLastRow() + REPORT_LAYOUT.gap) : 1;
+  if (!shouldAppend) {
+    writeReportIndexHeader_(indexSheet);
+  } else if (indexSheet.getLastRow() === 0 || !String(indexSheet.getRange(1, 1).getValue()).trim()) {
+    writeReportIndexHeader_(indexSheet);
+  }
+
   submissions.forEach((submission) => {
-    row = renderSingleTeamReport_(sh, row, submission.payload, submission.timestamp, submission.submissionId);
-    row += REPORT_LAYOUT.gap;
+    const teamSheet = getOrCreateTeamReportSheet_(ss, submission.payload, submission.submissionId);
+    resetReportSheet_(teamSheet);
+    renderSingleTeamReport_(teamSheet, 1, submission.payload, submission.timestamp, submission.submissionId);
+    teamSheet.setFrozenRows(0);
+    appendReportIndexRow_(indexSheet, teamSheet, submission);
   });
 
-  sh.setFrozenRows(0);
-  sh.activate();
+  renderSummaryReport_(summarySheet, resolveSummarySubmissions_(ss, submissions, shouldAppend));
+  summarySheet.setFrozenRows(0);
+
+  indexSheet.autoResizeColumns(1, 5);
+  indexSheet.activate();
+}
+
+function resetReportSheet_(sh) {
+  breakApartAllMergedRanges_(sh);
+  sh.clear();
+  applyReportCanvas_(sh);
+}
+
+function breakApartAllMergedRanges_(sh) {
+  const wholeSheet = sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns());
+  const mergedRanges = wholeSheet.getMergedRanges();
+  mergedRanges.forEach((range) => range.breakApart());
+}
+
+function writeReportIndexHeader_(sh) {
+  sh.getRange(1, 1, 1, 5)
+    .setValues([['Équipe', 'Niveau', 'Horodateur', 'Soumission', 'Onglet individuel']])
+    .setBackground(REPORT_THEME.white)
+    .setFontColor(REPORT_THEME.navy)
+    .setFontWeight('bold')
+    .setBorder(true, true, true, true, true, true, REPORT_THEME.red, SpreadsheetApp.BorderStyle.SOLID_THICK);
+  sh.setRowHeight(1, REPORT_LAYOUT.rowHeight);
+}
+
+function appendReportIndexRow_(sh, teamSheet, submission) {
+  const row = Math.max(2, sh.getLastRow() + 1);
+  const payload = submission.payload || {};
+  const gid = teamSheet.getSheetId();
+  sh.getRange(row, 1, 1, 5).setValues([[
+    payload.club || 'Équipe sans nom',
+    payload.niveau || '',
+    formatDateForReport_(submission.timestamp),
+    submission.submissionId,
+    '=HYPERLINK("#gid=' + gid + '", "Ouvrir la fiche")'
+  ]]);
+  sh.getRange(row, 1, 1, 5)
+    .setBackground(REPORT_THEME.white)
+    .setFontColor(REPORT_THEME.navy)
+    .setBorder(true, true, true, true, true, true, REPORT_THEME.lineBlue, SpreadsheetApp.BorderStyle.SOLID);
+  sh.setRowHeight(row, REPORT_LAYOUT.rowHeight);
+}
+
+function getOrCreateTeamReportSheet_(ss, payload, submissionId) {
+  const base = makeTeamReportSheetName_(payload, submissionId);
+  const existing = ss.getSheetByName(base);
+  if (existing) return existing;
+  return ss.insertSheet(base);
+}
+
+function makeTeamReportSheetName_(payload, submissionId) {
+  const club = (payload && payload.club) || 'Equipe sans nom';
+  const suffix = String(submissionId || '').slice(-8);
+  const rawName = SHEETS.teamReportPrefix + club + (suffix ? ' - ' + suffix : '');
+  return sanitizeSheetName_(rawName, 100);
+}
+
+function sanitizeSheetName_(name, maxLength) {
+  const cleaned = String(name || 'Equipe')
+    .replace(/[\\/?*\[\]:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return (cleaned || 'Equipe').slice(0, maxLength);
+}
+
+function deleteGeneratedTeamReportSheets_(ss) {
+  const sheets = ss.getSheets();
+  sheets.forEach((sh) => {
+    if (sh.getName().indexOf(SHEETS.teamReportPrefix) !== 0) return;
+    if (ss.getSheets().length <= 1) {
+      resetReportSheet_(sh);
+      return;
+    }
+    ss.deleteSheet(sh);
+  });
+}
+
+function deleteLegacyVisualSheets_(ss) {
+  LEGACY_VISUAL_SHEETS.forEach((name) => {
+    const sh = ss.getSheetByName(name);
+    if (!sh || ss.getSheets().length <= 1) return;
+    ss.deleteSheet(sh);
+  });
+}
+
+function resolveSummarySubmissions_(ss, submissions, shouldAppend) {
+  if (!shouldAppend) return submissions;
+  try {
+    const allSubmissions = readFormResponsePayloads_(ss);
+    return allSubmissions.length ? allSubmissions : submissions;
+  } catch (err) {
+    return submissions;
+  }
 }
 
 function writeEmptyReportState_(sh) {
@@ -328,6 +394,221 @@ function renderSingleTeamReport_(sh, startRow, payload, timestamp, submissionId)
 
   row = writeCommonQuestions_(sh, row, payload);
   return row;
+}
+
+function renderSummaryReport_(sh, submissions) {
+  applyReportCanvas_(sh);
+  const totalTeams = submissions.length;
+  const stats = buildSummaryStats_(submissions);
+  let row = 1;
+
+  row = writeSummaryHeader_(sh, row, totalTeams);
+  row = writeSummaryTable_(sh, row, 'ZONES ANATOMIQUES ÉVALUÉES', 'Force', ['Zone', 'Mouvement', 'Nb équipes', '% équipes', 'Détails fréquents'], summaryRows_(stats.force, totalTeams));
+  row = writeSummaryTable_(sh, row, 'ZONES ANATOMIQUES ÉVALUÉES', 'Mobilité', ['Zone', 'Mouvement', 'Nb équipes', '% équipes', 'Détails fréquents'], summaryRows_(stats.mobilite, totalTeams));
+  row = writeSummaryTable_(sh, row, 'ZONES ANATOMIQUES ÉVALUÉES', 'Autres sous-parties', ['Sous-partie', 'Zone', 'Réponse', 'Nb équipes', '% équipes'], summaryRows_(stats.zoneArrays, totalTeams));
+  row = writeSummaryTable_(sh, row, 'EVALUATIONS TRANSVERSALES', 'Tests transversaux', ['Bloc', 'Catégorie', 'Réponse', 'Nb équipes', '% équipes'], summaryRows_(stats.globaux, totalTeams));
+  row = writeSummaryTable_(sh, row, 'QUESTIONS COMMUNES', 'Limites et choix', ['Question', 'Réponse', 'Nb équipes', '% équipes'], summaryRows_(stats.common, totalTeams));
+  return row;
+}
+
+function writeSummaryHeader_(sh, row, totalTeams) {
+  const range = sh.getRange(row, 1, 2, REPORT_LAYOUT.lastCol).merge();
+  range
+    .setValue('SYNTHÈSE DES ÉQUIPES')
+    .setFontSize(34)
+    .setFontWeight('bold')
+    .setFontColor(REPORT_THEME.white)
+    .setHorizontalAlignment('left')
+    .setVerticalAlignment('middle');
+  sh.setRowHeights(row, 2, 48);
+
+  const meta = sh.getRange(row + 2, 1, 1, REPORT_LAYOUT.lastCol).merge();
+  meta
+    .setValue('Base de calcul : ' + totalTeams + ' équipe(s) / soumission(s) exploitable(s)')
+    .setFontSize(10)
+    .setFontColor('#CFE4FF')
+    .setHorizontalAlignment('left');
+
+  return row + 4;
+}
+
+function writeSummaryTable_(sh, row, chapterTitle, sectionLabel, headers, rows) {
+  const filledRows = (rows || [])
+    .filter((line) => line.some(hasTextValue_))
+    .map((line) => padSummaryRow_(line, headers.length));
+  if (!filledRows.length) return row;
+
+  row = writeChapterTitle_(sh, row, chapterTitle, sectionLabel);
+  const tableStartCol = 3;
+  const tableCols = Math.max(headers.length, 5);
+  const tableRows = filledRows.length + 1;
+  writeSideLabel_(sh, row, tableRows, sectionLabel);
+
+  const range = sh.getRange(row, tableStartCol, tableRows, tableCols);
+  range
+    .setBackground(REPORT_THEME.navy)
+    .setFontColor(REPORT_THEME.white)
+    .setBorder(true, true, true, true, true, true, REPORT_THEME.lineBlue, SpreadsheetApp.BorderStyle.SOLID_THICK);
+
+  sh.getRange(row, tableStartCol, 1, headers.length)
+    .setValues([headers])
+    .setFontWeight('bold')
+    .setHorizontalAlignment('center');
+  sh.getRange(row + 1, tableStartCol, filledRows.length, headers.length)
+    .setValues(filledRows)
+    .setHorizontalAlignment('center');
+  sh.setRowHeights(row, tableRows, REPORT_LAYOUT.rowHeight);
+  return row + tableRows + 2;
+}
+
+function buildSummaryStats_(submissions) {
+  const stats = {
+    force: {},
+    mobilite: {},
+    zoneArrays: {},
+    globaux: {},
+    common: {}
+  };
+
+  submissions.forEach((submission, index) => {
+    const payload = submission.payload || {};
+    const teamKey = summaryTeamKey_(submission, index);
+    (payload.zones_details || []).forEach((zone) => collectZoneSummary_(stats, teamKey, zone));
+    collectGlobalSummary_(stats, teamKey, payload.globaux || {});
+    collectCommonSummary_(stats, teamKey, payload);
+  });
+
+  return stats;
+}
+
+function collectZoneSummary_(stats, teamKey, zone) {
+  const zoneName = zone.zone || 'Zone non renseignée';
+  (zone.force || []).forEach((item) => {
+    const movement = item.mouvement || item.test || 'Mouvement non renseigné';
+    addSummaryEntry_(stats.force, [zoneName, movement], teamKey, [
+      summaryDetailLine_('Moments', item.moments),
+      summaryDetailLine_('Outils', item.outils),
+      summaryDetailLine_('Tests', item.tests),
+      summaryDetailLine_('Paramètres', item.params),
+      summaryDetailLine_('Critères', item.criteres),
+      summaryDetailLine_('Autres', formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'tests', 'params', 'criteres', 'isoVitesses', 'isoModes']))
+    ]);
+  });
+
+  (zone.mobilite || []).forEach((item) => {
+    const movement = item.mouvement || item.test || 'Mouvement non renseigné';
+    addSummaryEntry_(stats.mobilite, [zoneName, movement], teamKey, [
+      summaryDetailLine_('Moments', item.moments),
+      summaryDetailLine_('Outils', item.outils),
+      summaryDetailLine_('Critères', item.criteres),
+      summaryDetailLine_('Autres', formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'criteres']))
+    ]);
+  });
+
+  addZoneArraySummary_(stats, teamKey, zone, 'Proprioception', zone.proprio || zone.proprioception_equilibre);
+  addZoneArraySummary_(stats, teamKey, zone, 'Questionnaires', zone.questionnaires);
+  addZoneArraySummary_(stats, teamKey, zone, 'Test de cognition', zone.cognition);
+  addZoneArraySummary_(stats, teamKey, zone, 'Test oculaire', zone.test_oculaire);
+  addZoneArraySummary_(stats, teamKey, zone, 'Test vestibulaire', zone.test_vestibulaire);
+  addZoneArraySummary_(stats, teamKey, zone, 'Autres données', zone.autres_donnees);
+}
+
+function addZoneArraySummary_(stats, teamKey, zone, label, rawItems) {
+  normalizeArrayItems_(rawItems).forEach((item) => {
+    addSummaryEntry_(stats.zoneArrays, [label, zone.zone || 'Zone non renseignée', String(item)], teamKey, []);
+  });
+}
+
+function collectGlobalSummary_(stats, teamKey, globaux) {
+  const configs = [
+    { key: 'sauts', label: 'Test de saut' },
+    { key: 'course', label: 'Test de course' },
+    { key: 'mi', label: 'Test global MI' },
+    { key: 'ms', label: 'Test global MS' }
+  ];
+
+  configs.forEach((cfg) => {
+    const block = globaux[cfg.key];
+    if (!block || block.fait !== 'Oui') return;
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Tests sélectionnés', block.tests);
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Énergétique', block.tests_ener);
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Vitesse', block.tests_vit);
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Changement de direction', block.tests_cod);
+    (block.details_par_test || []).forEach((item) => {
+      const test = item.test || item.mouvement || 'Test détaillé non renseigné';
+      addSummaryEntry_(stats.globaux, [cfg.label, 'Détails par test', test], teamKey, [
+        summaryDetailLine_('Moments', item.moments),
+        summaryDetailLine_('Outils', item.outils),
+        summaryDetailLine_('Paramètres', item.params),
+        summaryDetailLine_('Critères', item.criteres),
+        summaryDetailLine_('Autres', formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'params', 'criteres']))
+      ]);
+    });
+  });
+
+  if (globaux.combat && globaux.combat.fait === 'Oui') {
+    addSummaryEntry_(stats.globaux, ['Test combat', 'Réalisé', 'Oui'], teamKey, []);
+  }
+}
+
+function addGlobalArraySummary_(stats, teamKey, blockLabel, category, rawItems) {
+  normalizeArrayItems_(rawItems).forEach((item) => {
+    addSummaryEntry_(stats.globaux, [blockLabel, category, String(item)], teamKey, []);
+  });
+}
+
+function collectCommonSummary_(stats, teamKey, payload) {
+  [].concat(payload.barrieres || [], payload.barrieres_autre || []).forEach((item) => {
+    if (hasTextValue_(item)) addSummaryEntry_(stats.common, ['Limites / Barrières', String(item)], teamKey, []);
+  });
+  [].concat(payload.raisons || [], payload.raisons_autre || []).forEach((item) => {
+    if (hasTextValue_(item)) addSummaryEntry_(stats.common, ['Guide les choix', String(item)], teamKey, []);
+  });
+}
+
+function addSummaryEntry_(bucket, labels, teamKey, details) {
+  const key = labels.join('||');
+  if (!bucket[key]) {
+    bucket[key] = { labels: labels, teams: {}, details: {} };
+  }
+  bucket[key].teams[teamKey] = true;
+  (details || []).filter(hasTextValue_).forEach((detail) => {
+    bucket[key].details[detail] = true;
+  });
+}
+
+function summaryRows_(bucket, totalTeams) {
+  return Object.keys(bucket)
+    .map((key) => {
+      const entry = bucket[key];
+      const count = Object.keys(entry.teams).length;
+      const row = entry.labels.concat([count, formatPercent_(totalTeams ? count / totalTeams : 0)]);
+      const details = Object.keys(entry.details).slice(0, 4).join('\n');
+      if (details) row.push(details);
+      return { count: count, row: row };
+    })
+    .sort((a, b) => b.count - a.count || String(a.row[0]).localeCompare(String(b.row[0])) || String(a.row[1]).localeCompare(String(b.row[1])))
+    .map((entry) => entry.row);
+}
+
+function padSummaryRow_(line, size) {
+  const row = line.slice(0, size);
+  while (row.length < size) row.push('');
+  return row;
+}
+
+function summaryTeamKey_(submission, index) {
+  const payload = submission.payload || {};
+  return submission.submissionId || payload.submission_id || payload.club || ('Equipe-' + index);
+}
+
+function summaryDetailLine_(label, value) {
+  if (!hasTextValue_(value)) return '';
+  return label + ' : ' + formatReportValue_(value);
+}
+
+function formatPercent_(value) {
+  return Math.round(value * 100) + '%';
 }
 
 function writeTeamHeader_(sh, row, payload, timestamp, submissionId) {
@@ -399,18 +680,18 @@ function writeChapterTitle_(sh, row, title, subtitle) {
 
 function writeZoneBlocks_(sh, row, zone) {
   if ((zone.force || []).length) {
-    row = writeTypedItemTable_(sh, row, 'Force', 'Mouvements', zone.force, ['Moment', 'Outils', 'Tests', 'Paramètres', 'Critère d’évaluations', 'Vitesses isocinétisme', 'Modes isocinétisme'], forceValueForRow_);
+    row = writeTypedItemTable_(sh, row, 'Force', 'Mouvements', zone.force, ['Moment', 'Outils', 'Tests', 'Paramètres', 'Critère d’évaluations', 'Vitesses isocinétisme', 'Modes isocinétisme', 'Autres précisions'], forceValueForRow_);
   }
   if ((zone.mobilite || []).length) {
-    row = writeTypedItemTable_(sh, row, 'Mobilité', 'Mouvements', zone.mobilite, ['Moment', 'Outils', 'Critère d’évaluations'], mobilityValueForRow_);
+    row = writeTypedItemTable_(sh, row, 'Mobilité', 'Mouvements', zone.mobilite, ['Moment', 'Outils', 'Critère d’évaluations', 'Autres précisions'], mobilityValueForRow_);
   }
 
-  row = writeArrayTypeBlock_(sh, row, 'Proprioception', zone.proprio || zone.proprioception_equilibre, ['Moment', 'Tests', 'Critère d’évaluations']);
-  row = writeArrayTypeBlock_(sh, row, 'Questionnaire', zone.questionnaires, ['Moment', 'Questionnaire']);
-  row = writeArrayTypeBlock_(sh, row, 'Test de cognition', zone.cognition, ['Moment', 'Tests']);
-  row = writeArrayTypeBlock_(sh, row, 'Test oculaire', zone.test_oculaire, ['Moment', 'Données']);
-  row = writeArrayTypeBlock_(sh, row, 'Test vestibulaire', zone.test_vestibulaire, ['Moment', 'Données']);
-  row = writeArrayTypeBlock_(sh, row, 'Autres données', zone.autres_donnees, ['Moment', 'Données']);
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Proprioception', 'Proprioception / Équilibre', zone.proprio || zone.proprioception_equilibre, 'Tests / critères');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Questionnaire', 'Questionnaires', zone.questionnaires, 'Questionnaires');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Test de cognition', 'Test de cognition', zone.cognition, 'Tests');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Test oculaire', 'Test oculaire', zone.test_oculaire, 'Données');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Test vestibulaire', 'Test vestibulaire', zone.test_vestibulaire, 'Données');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Autres données', 'Autres données', zone.autres_donnees, 'Données');
 
   return row;
 }
@@ -427,7 +708,9 @@ function writeGlobalBlocks_(sh, row, globaux) {
     const block = globaux[cfg.key];
     if (!block || block.fait !== 'Oui') return;
     row = writeChapterTitle_(sh, row, 'EVALUATIONS TRANSVERSALES', cfg.label);
+    row = writeGlobalSelectionSummary_(sh, row, cfg.label, block);
     row = writeGlobalDetailTable_(sh, row, cfg.firstHeader, block.details_par_test || []);
+    row = writeBlockOtherDetails_(sh, row, 'Autres précisions', block, ['fait', 'tests', 'tests_ener', 'tests_vit', 'tests_cod', 'details_par_test']);
   });
 
   if (globaux.combat && globaux.combat.fait === 'Oui') {
@@ -436,18 +719,40 @@ function writeGlobalBlocks_(sh, row, globaux) {
       ['Test', 'Oui'],
       ['Moment', 'Retour au jeu']
     ]);
+    row = writeBlockOtherDetails_(sh, row, 'Autres précisions', globaux.combat, ['fait']);
   }
   return row;
 }
 
+function writeGlobalSelectionSummary_(sh, row, sectionLabel, block) {
+  return writeSimpleTwoColumnTable_(sh, row, sectionLabel, [
+    ['Tests sélectionnés', joinList_(block.tests)],
+    ['Énergétique', joinList_(block.tests_ener)],
+    ['Vitesse', joinList_(block.tests_vit)],
+    ['Changement de direction', joinList_(block.tests_cod)]
+  ]);
+}
+
+function writeBlockOtherDetails_(sh, row, sectionLabel, block, knownKeys) {
+  const details = formatOtherFields_(block, knownKeys);
+  if (!hasTextValue_(details)) return row;
+  return writeSimpleTwoColumnTable_(sh, row, sectionLabel, [['Détail', details]]);
+}
+
 function writeTypedItemTable_(sh, row, sectionLabel, firstHeader, items, rowLabels, valueGetter) {
+  const preparedItems = (items || []).filter(hasRenderableValue_);
+  if (!preparedItems.length) return row;
+
   const tableStartCol = 3;
-  const maxItemsPerTable = REPORT_LAYOUT.lastCol - tableStartCol;
-  const chunks = chunkItems_(items.length ? items : [{}], maxItemsPerTable);
+  const maxItemsPerTable = 1;
+  const chunks = chunkItems_(preparedItems, maxItemsPerTable);
 
   chunks.forEach((chunk, chunkIndex) => {
+    const displayRows = buildDisplayRows_(chunk, rowLabels, valueGetter);
+    if (!displayRows.length) return;
+
     const tableCols = chunk.length + 1;
-    const tableRows = rowLabels.length + 1;
+    const tableRows = displayRows.length + 1;
     const label = chunkIndex === 0 ? sectionLabel : sectionLabel + ' (suite)';
 
     writeSideLabel_(sh, row, tableRows, label);
@@ -459,12 +764,12 @@ function writeTypedItemTable_(sh, row, sectionLabel, firstHeader, items, rowLabe
       sh.getRange(row, tableStartCol + index + 1).setValue(item.mouvement || item.test || 'Item').setFontWeight('bold').setHorizontalAlignment('center');
     });
 
-    rowLabels.forEach((labelText, labelIndex) => {
+    displayRows.forEach((displayRow, labelIndex) => {
       const currentRow = row + labelIndex + 1;
-      sh.getRange(currentRow, tableStartCol).setValue(labelText).setFontWeight('bold').setHorizontalAlignment('left');
+      sh.getRange(currentRow, tableStartCol).setValue(displayRow.label).setFontWeight('bold').setHorizontalAlignment('left');
       chunk.forEach((item, itemIndex) => {
         sh.getRange(currentRow, tableStartCol + itemIndex + 1)
-          .setValue(valueGetter(item, labelText))
+          .setValue(displayValueOrBlank_(valueGetter(item, displayRow.sourceLabel || displayRow.label)))
           .setHorizontalAlignment('center');
       });
     });
@@ -476,28 +781,50 @@ function writeTypedItemTable_(sh, row, sectionLabel, firstHeader, items, rowLabe
   return row;
 }
 
+function writeZoneArrayTypeBlock_(sh, row, zone, sectionLabel, typeValue, rawItems, detailLabel) {
+  const items = normalizeArrayItems_(rawItems);
+  if (!items.length) return row;
+
+  const moments = momentsForZoneType_(zone, typeValue);
+  const rows = [
+    ['Moment', joinList_(moments)],
+    [detailLabel, joinList_(items)]
+  ];
+  return writeSimpleTwoColumnTable_(sh, row, sectionLabel, rows);
+}
+
+function momentsForZoneType_(zone, typeValue) {
+  if (!zone || !zone.moments_par_type) return zone && zone.moments ? zone.moments : [];
+  return zone.moments_par_type[typeValue] || zone.moments || [];
+}
+
 function writeArrayTypeBlock_(sh, row, sectionLabel, rawItems, labels) {
   const items = normalizeArrayItems_(rawItems);
   if (!items.length) return row;
 
-  const values = labels.map((label, index) => [label, arrayValueForIndex_(items, index, labels.length)]);
+  const values = labels
+    .map((label, index) => [label, arrayValueForIndex_(items, index, labels.length)])
+    .filter((line) => hasTextValue_(line[1]));
   return writeSimpleTwoColumnTable_(sh, row, sectionLabel, values);
 }
 
 function writeGlobalDetailTable_(sh, row, firstHeader, details) {
   if (!details.length) return row;
-  return writeTypedItemTable_(sh, row, '', firstHeader, details, ['Moment', 'Outils', 'Paramètres', 'Critère d’évaluations'], globalValueForRow_);
+  return writeTypedItemTable_(sh, row, '', firstHeader, details, ['Moment', 'Outils', 'Paramètres', 'Critère d’évaluations', 'Autres précisions'], globalValueForRow_);
 }
 
 function writeSimpleTwoColumnTable_(sh, row, sectionLabel, rows) {
+  const filledRows = (rows || []).filter((line) => hasTextValue_(line[1]));
+  if (!filledRows.length) return row;
+
   const tableStartCol = 4;
   const tableCols = 5;
-  const tableRows = rows.length;
+  const tableRows = filledRows.length;
   writeSideLabel_(sh, row, tableRows, sectionLabel);
 
   const range = sh.getRange(row, tableStartCol, tableRows, tableCols);
   range.setBackground(REPORT_THEME.navy).setFontColor(REPORT_THEME.white).setBorder(true, true, true, true, true, true, REPORT_THEME.lineBlue, SpreadsheetApp.BorderStyle.SOLID_THICK);
-  rows.forEach((line, index) => {
+  filledRows.forEach((line, index) => {
     sh.getRange(row + index, tableStartCol, 1, 2).merge().setValue(line[0]).setFontWeight('bold').setHorizontalAlignment('left');
     sh.getRange(row + index, tableStartCol + 2, 1, tableCols - 2).merge().setValue(line[1]).setHorizontalAlignment('center');
   });
@@ -508,7 +835,7 @@ function writeSimpleTwoColumnTable_(sh, row, sectionLabel, rows) {
 function writeCommonQuestions_(sh, row, payload) {
   row = writeChapterTitle_(sh, row, 'QUESTIONS COMMUNES', 'Limites et barrières');
   return writeSimpleTwoColumnTable_(sh, row, 'Questions communes', [
-    ['Limites / Barrières', joinList_(payload.barrieres)],
+    ['Limites / Barrières', joinList_([].concat(payload.barrieres || [], payload.barrieres_autre || []))],
     ['Guide les choix', joinList_([].concat(payload.raisons || [], payload.raisons_autre || []))]
   ]);
 }
@@ -534,6 +861,7 @@ function forceValueForRow_(item, label) {
   if (label === 'Critère d’évaluations') return joinList_(item.criteres);
   if (label === 'Vitesses isocinétisme') return joinList_(item.isoVitesses);
   if (label === 'Modes isocinétisme') return joinList_(item.isoModes);
+  if (label === 'Autres précisions') return formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'tests', 'params', 'criteres', 'isoVitesses', 'isoModes']);
   return '';
 }
 
@@ -541,6 +869,7 @@ function mobilityValueForRow_(item, label) {
   if (label === 'Moment') return joinList_(item.moments);
   if (label === 'Outils') return joinList_(item.outils);
   if (label === 'Critère d’évaluations') return joinList_(item.criteres);
+  if (label === 'Autres précisions') return formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'criteres']);
   return '';
 }
 
@@ -549,7 +878,47 @@ function globalValueForRow_(item, label) {
   if (label === 'Outils') return joinList_(item.outils);
   if (label === 'Paramètres') return joinList_(item.params);
   if (label === 'Critère d’évaluations') return joinList_(item.criteres);
+  if (label === 'Autres précisions') return formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'params', 'criteres']);
   return '';
+}
+
+function buildDisplayRows_(items, rowLabels, valueGetter) {
+  return rowLabels
+    .map((label) => ({ label: label, sourceLabel: label }))
+    .filter((displayRow) => items.some((item) => hasTextValue_(valueGetter(item, displayRow.sourceLabel))));
+}
+
+function hasRenderableValue_(item) {
+  if (!item) return false;
+  if (typeof item !== 'object') return hasTextValue_(item);
+  return Object.keys(item).some((key) => hasTextValue_(item[key]));
+}
+
+function hasTextValue_(value) {
+  if (Array.isArray(value)) return value.some(hasTextValue_);
+  if (value && typeof value === 'object') return Object.keys(value).some((key) => hasTextValue_(value[key]));
+  const text = String(value || '').trim();
+  return text !== '' && text !== '-';
+}
+
+function displayValueOrBlank_(value) {
+  return hasTextValue_(value) ? value : '';
+}
+
+function formatOtherFields_(item, knownKeys) {
+  if (!item || typeof item !== 'object') return '';
+  const known = {};
+  knownKeys.forEach((key) => { known[key] = true; });
+  const lines = Object.keys(item)
+    .filter((key) => !known[key] && hasTextValue_(item[key]))
+    .map((key) => key + ' : ' + formatReportValue_(item[key]));
+  return lines.join('\n');
+}
+
+function formatReportValue_(value) {
+  if (Array.isArray(value)) return joinList_(value);
+  if (value && typeof value === 'object') return JSON.stringify(value);
+  return String(value || '').trim();
 }
 
 function chunkItems_(items, size) {
