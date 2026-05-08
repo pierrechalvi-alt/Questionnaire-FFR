@@ -16,8 +16,11 @@ const SHEETS = {
   dashboard: 'Dashboard',
   formResponses: 'Form_Responses',
   rendered: 'Rendu_Equipes',
+  summary: 'Synthese_Equipes',
   teamReportPrefix: 'Équipe - '
 };
+
+const LEGACY_VISUAL_SHEETS = [SHEETS.raw, SHEETS.teams, SHEETS.details, SHEETS.stats, SHEETS.dashboard];
 
 const FORM_RESPONSE_CONFIG = {
   timestampHeader: 'Horodateur',
@@ -72,58 +75,9 @@ function genererRenduEquipes() {
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents || '{}');
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    const shRaw = getOrCreateSheet_(ss, SHEETS.raw, [
-      'timestamp', 'submission_id', 'club', 'niveau', 'prep_nom', 'prep_prenom', 'kine_nom', 'kine_prenom', 'json_payload'
-    ]);
-
-    const shTeams = getOrCreateSheet_(ss, SHEETS.teams, [
-      'submission_id', 'timestamp', 'club', 'niveau', 'preparateur', 'kine', 'zones_selectionnees', 'barrieres', 'raisons'
-    ]);
-
-    const shDetails = getOrCreateSheet_(ss, SHEETS.details, [
-      'submission_id', 'timestamp', 'club', 'niveau', 'zone', 'type_test', 'moments', 'details'
-    ]);
-
     const timestamp = new Date();
     const submissionId = payload.submission_id || ('SUB-' + new Date().getTime());
-    const prepNom = (payload.preparateur && payload.preparateur.nom) || '';
-    const prepPrenom = (payload.preparateur && payload.preparateur.prenom) || '';
-    const kineNom = (payload.kine && payload.kine.nom) || '';
-    const kinePrenom = (payload.kine && payload.kine.prenom) || '';
 
-    shRaw.appendRow([
-      timestamp,
-      submissionId,
-      payload.club || '',
-      payload.niveau || '',
-      prepNom,
-      prepPrenom,
-      kineNom,
-      kinePrenom,
-      JSON.stringify(payload)
-    ]);
-
-    shTeams.appendRow([
-      submissionId,
-      timestamp,
-      payload.club || '',
-      payload.niveau || '',
-      [prepNom, prepPrenom].join(' ').trim(),
-      [kineNom, kinePrenom].join(' ').trim(),
-      (payload.zones || []).join(', '),
-      (payload.barrieres || []).join(', '),
-      (payload.raisons || []).join(', ')
-    ]);
-
-    const rows = buildDetailRows_(payload, submissionId, timestamp);
-    if (rows.length) {
-      shDetails.getRange(shDetails.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-    }
-
-    refreshStats_(ss);
-    styleAllSheets_(ss);
     renderTeamReports_([{ payload, timestamp, submissionId }], { append: true });
 
     return jsonResponse_({ ok: true, submission_id: submissionId });
@@ -244,7 +198,10 @@ function makeSubmissionId_(payload, timestamp, rowNumber) {
 function renderTeamReports_(submissions, options) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const indexSheet = getOrCreateSheet_(ss, SHEETS.rendered, []);
+  const summarySheet = getOrCreateSheet_(ss, SHEETS.summary, []);
   const shouldAppend = options && options.append;
+
+  deleteLegacyVisualSheets_(ss);
 
   if (!shouldAppend) {
     deleteGeneratedTeamReportSheets_(ss);
@@ -253,9 +210,13 @@ function renderTeamReports_(submissions, options) {
     resetReportSheet_(indexSheet);
   }
 
+  resetReportSheet_(summarySheet);
+
   if (!submissions.length) {
     writeEmptyReportState_(indexSheet);
+    writeEmptyReportState_(summarySheet);
     indexSheet.setFrozenRows(0);
+    summarySheet.setFrozenRows(0);
     indexSheet.activate();
     return;
   }
@@ -273,6 +234,9 @@ function renderTeamReports_(submissions, options) {
     teamSheet.setFrozenRows(0);
     appendReportIndexRow_(indexSheet, teamSheet, submission);
   });
+
+  renderSummaryReport_(summarySheet, resolveSummarySubmissions_(ss, submissions, shouldAppend));
+  summarySheet.setFrozenRows(0);
 
   indexSheet.autoResizeColumns(1, 5);
   indexSheet.activate();
@@ -352,6 +316,24 @@ function deleteGeneratedTeamReportSheets_(ss) {
   });
 }
 
+function deleteLegacyVisualSheets_(ss) {
+  LEGACY_VISUAL_SHEETS.forEach((name) => {
+    const sh = ss.getSheetByName(name);
+    if (!sh || ss.getSheets().length <= 1) return;
+    ss.deleteSheet(sh);
+  });
+}
+
+function resolveSummarySubmissions_(ss, submissions, shouldAppend) {
+  if (!shouldAppend) return submissions;
+  try {
+    const allSubmissions = readFormResponsePayloads_(ss);
+    return allSubmissions.length ? allSubmissions : submissions;
+  } catch (err) {
+    return submissions;
+  }
+}
+
 function writeEmptyReportState_(sh) {
   const message = [
     'Aucune réponse exploitable trouvée pour générer le rendu.',
@@ -412,6 +394,221 @@ function renderSingleTeamReport_(sh, startRow, payload, timestamp, submissionId)
 
   row = writeCommonQuestions_(sh, row, payload);
   return row;
+}
+
+function renderSummaryReport_(sh, submissions) {
+  applyReportCanvas_(sh);
+  const totalTeams = submissions.length;
+  const stats = buildSummaryStats_(submissions);
+  let row = 1;
+
+  row = writeSummaryHeader_(sh, row, totalTeams);
+  row = writeSummaryTable_(sh, row, 'ZONES ANATOMIQUES ÉVALUÉES', 'Force', ['Zone', 'Mouvement', 'Nb équipes', '% équipes', 'Détails fréquents'], summaryRows_(stats.force, totalTeams));
+  row = writeSummaryTable_(sh, row, 'ZONES ANATOMIQUES ÉVALUÉES', 'Mobilité', ['Zone', 'Mouvement', 'Nb équipes', '% équipes', 'Détails fréquents'], summaryRows_(stats.mobilite, totalTeams));
+  row = writeSummaryTable_(sh, row, 'ZONES ANATOMIQUES ÉVALUÉES', 'Autres sous-parties', ['Sous-partie', 'Zone', 'Réponse', 'Nb équipes', '% équipes'], summaryRows_(stats.zoneArrays, totalTeams));
+  row = writeSummaryTable_(sh, row, 'EVALUATIONS TRANSVERSALES', 'Tests transversaux', ['Bloc', 'Catégorie', 'Réponse', 'Nb équipes', '% équipes'], summaryRows_(stats.globaux, totalTeams));
+  row = writeSummaryTable_(sh, row, 'QUESTIONS COMMUNES', 'Limites et choix', ['Question', 'Réponse', 'Nb équipes', '% équipes'], summaryRows_(stats.common, totalTeams));
+  return row;
+}
+
+function writeSummaryHeader_(sh, row, totalTeams) {
+  const range = sh.getRange(row, 1, 2, REPORT_LAYOUT.lastCol).merge();
+  range
+    .setValue('SYNTHÈSE DES ÉQUIPES')
+    .setFontSize(34)
+    .setFontWeight('bold')
+    .setFontColor(REPORT_THEME.white)
+    .setHorizontalAlignment('left')
+    .setVerticalAlignment('middle');
+  sh.setRowHeights(row, 2, 48);
+
+  const meta = sh.getRange(row + 2, 1, 1, REPORT_LAYOUT.lastCol).merge();
+  meta
+    .setValue('Base de calcul : ' + totalTeams + ' équipe(s) / soumission(s) exploitable(s)')
+    .setFontSize(10)
+    .setFontColor('#CFE4FF')
+    .setHorizontalAlignment('left');
+
+  return row + 4;
+}
+
+function writeSummaryTable_(sh, row, chapterTitle, sectionLabel, headers, rows) {
+  const filledRows = (rows || [])
+    .filter((line) => line.some(hasTextValue_))
+    .map((line) => padSummaryRow_(line, headers.length));
+  if (!filledRows.length) return row;
+
+  row = writeChapterTitle_(sh, row, chapterTitle, sectionLabel);
+  const tableStartCol = 3;
+  const tableCols = Math.max(headers.length, 5);
+  const tableRows = filledRows.length + 1;
+  writeSideLabel_(sh, row, tableRows, sectionLabel);
+
+  const range = sh.getRange(row, tableStartCol, tableRows, tableCols);
+  range
+    .setBackground(REPORT_THEME.navy)
+    .setFontColor(REPORT_THEME.white)
+    .setBorder(true, true, true, true, true, true, REPORT_THEME.lineBlue, SpreadsheetApp.BorderStyle.SOLID_THICK);
+
+  sh.getRange(row, tableStartCol, 1, headers.length)
+    .setValues([headers])
+    .setFontWeight('bold')
+    .setHorizontalAlignment('center');
+  sh.getRange(row + 1, tableStartCol, filledRows.length, headers.length)
+    .setValues(filledRows)
+    .setHorizontalAlignment('center');
+  sh.setRowHeights(row, tableRows, REPORT_LAYOUT.rowHeight);
+  return row + tableRows + 2;
+}
+
+function buildSummaryStats_(submissions) {
+  const stats = {
+    force: {},
+    mobilite: {},
+    zoneArrays: {},
+    globaux: {},
+    common: {}
+  };
+
+  submissions.forEach((submission, index) => {
+    const payload = submission.payload || {};
+    const teamKey = summaryTeamKey_(submission, index);
+    (payload.zones_details || []).forEach((zone) => collectZoneSummary_(stats, teamKey, zone));
+    collectGlobalSummary_(stats, teamKey, payload.globaux || {});
+    collectCommonSummary_(stats, teamKey, payload);
+  });
+
+  return stats;
+}
+
+function collectZoneSummary_(stats, teamKey, zone) {
+  const zoneName = zone.zone || 'Zone non renseignée';
+  (zone.force || []).forEach((item) => {
+    const movement = item.mouvement || item.test || 'Mouvement non renseigné';
+    addSummaryEntry_(stats.force, [zoneName, movement], teamKey, [
+      summaryDetailLine_('Moments', item.moments),
+      summaryDetailLine_('Outils', item.outils),
+      summaryDetailLine_('Tests', item.tests),
+      summaryDetailLine_('Paramètres', item.params),
+      summaryDetailLine_('Critères', item.criteres),
+      summaryDetailLine_('Autres', formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'tests', 'params', 'criteres', 'isoVitesses', 'isoModes']))
+    ]);
+  });
+
+  (zone.mobilite || []).forEach((item) => {
+    const movement = item.mouvement || item.test || 'Mouvement non renseigné';
+    addSummaryEntry_(stats.mobilite, [zoneName, movement], teamKey, [
+      summaryDetailLine_('Moments', item.moments),
+      summaryDetailLine_('Outils', item.outils),
+      summaryDetailLine_('Critères', item.criteres),
+      summaryDetailLine_('Autres', formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'criteres']))
+    ]);
+  });
+
+  addZoneArraySummary_(stats, teamKey, zone, 'Proprioception', zone.proprio || zone.proprioception_equilibre);
+  addZoneArraySummary_(stats, teamKey, zone, 'Questionnaires', zone.questionnaires);
+  addZoneArraySummary_(stats, teamKey, zone, 'Test de cognition', zone.cognition);
+  addZoneArraySummary_(stats, teamKey, zone, 'Test oculaire', zone.test_oculaire);
+  addZoneArraySummary_(stats, teamKey, zone, 'Test vestibulaire', zone.test_vestibulaire);
+  addZoneArraySummary_(stats, teamKey, zone, 'Autres données', zone.autres_donnees);
+}
+
+function addZoneArraySummary_(stats, teamKey, zone, label, rawItems) {
+  normalizeArrayItems_(rawItems).forEach((item) => {
+    addSummaryEntry_(stats.zoneArrays, [label, zone.zone || 'Zone non renseignée', String(item)], teamKey, []);
+  });
+}
+
+function collectGlobalSummary_(stats, teamKey, globaux) {
+  const configs = [
+    { key: 'sauts', label: 'Test de saut' },
+    { key: 'course', label: 'Test de course' },
+    { key: 'mi', label: 'Test global MI' },
+    { key: 'ms', label: 'Test global MS' }
+  ];
+
+  configs.forEach((cfg) => {
+    const block = globaux[cfg.key];
+    if (!block || block.fait !== 'Oui') return;
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Tests sélectionnés', block.tests);
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Énergétique', block.tests_ener);
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Vitesse', block.tests_vit);
+    addGlobalArraySummary_(stats, teamKey, cfg.label, 'Changement de direction', block.tests_cod);
+    (block.details_par_test || []).forEach((item) => {
+      const test = item.test || item.mouvement || 'Test détaillé non renseigné';
+      addSummaryEntry_(stats.globaux, [cfg.label, 'Détails par test', test], teamKey, [
+        summaryDetailLine_('Moments', item.moments),
+        summaryDetailLine_('Outils', item.outils),
+        summaryDetailLine_('Paramètres', item.params),
+        summaryDetailLine_('Critères', item.criteres),
+        summaryDetailLine_('Autres', formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'params', 'criteres']))
+      ]);
+    });
+  });
+
+  if (globaux.combat && globaux.combat.fait === 'Oui') {
+    addSummaryEntry_(stats.globaux, ['Test combat', 'Réalisé', 'Oui'], teamKey, []);
+  }
+}
+
+function addGlobalArraySummary_(stats, teamKey, blockLabel, category, rawItems) {
+  normalizeArrayItems_(rawItems).forEach((item) => {
+    addSummaryEntry_(stats.globaux, [blockLabel, category, String(item)], teamKey, []);
+  });
+}
+
+function collectCommonSummary_(stats, teamKey, payload) {
+  [].concat(payload.barrieres || [], payload.barrieres_autre || []).forEach((item) => {
+    if (hasTextValue_(item)) addSummaryEntry_(stats.common, ['Limites / Barrières', String(item)], teamKey, []);
+  });
+  [].concat(payload.raisons || [], payload.raisons_autre || []).forEach((item) => {
+    if (hasTextValue_(item)) addSummaryEntry_(stats.common, ['Guide les choix', String(item)], teamKey, []);
+  });
+}
+
+function addSummaryEntry_(bucket, labels, teamKey, details) {
+  const key = labels.join('||');
+  if (!bucket[key]) {
+    bucket[key] = { labels: labels, teams: {}, details: {} };
+  }
+  bucket[key].teams[teamKey] = true;
+  (details || []).filter(hasTextValue_).forEach((detail) => {
+    bucket[key].details[detail] = true;
+  });
+}
+
+function summaryRows_(bucket, totalTeams) {
+  return Object.keys(bucket)
+    .map((key) => {
+      const entry = bucket[key];
+      const count = Object.keys(entry.teams).length;
+      const row = entry.labels.concat([count, formatPercent_(totalTeams ? count / totalTeams : 0)]);
+      const details = Object.keys(entry.details).slice(0, 4).join('\n');
+      if (details) row.push(details);
+      return { count: count, row: row };
+    })
+    .sort((a, b) => b.count - a.count || String(a.row[0]).localeCompare(String(b.row[0])) || String(a.row[1]).localeCompare(String(b.row[1])))
+    .map((entry) => entry.row);
+}
+
+function padSummaryRow_(line, size) {
+  const row = line.slice(0, size);
+  while (row.length < size) row.push('');
+  return row;
+}
+
+function summaryTeamKey_(submission, index) {
+  const payload = submission.payload || {};
+  return submission.submissionId || payload.submission_id || payload.club || ('Equipe-' + index);
+}
+
+function summaryDetailLine_(label, value) {
+  if (!hasTextValue_(value)) return '';
+  return label + ' : ' + formatReportValue_(value);
+}
+
+function formatPercent_(value) {
+  return Math.round(value * 100) + '%';
 }
 
 function writeTeamHeader_(sh, row, payload, timestamp, submissionId) {
