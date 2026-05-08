@@ -15,7 +15,8 @@ const SHEETS = {
   stats: 'Stats_Zones',
   dashboard: 'Dashboard',
   formResponses: 'Form_Responses',
-  rendered: 'Rendu_Equipes'
+  rendered: 'Rendu_Equipes',
+  teamReportPrefix: 'Équipe - '
 };
 
 const FORM_RESPONSE_CONFIG = {
@@ -242,30 +243,107 @@ function makeSubmissionId_(payload, timestamp, rowNumber) {
 
 function renderTeamReports_(submissions, options) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = getOrCreateSheet_(ss, SHEETS.rendered, []);
+  const indexSheet = getOrCreateSheet_(ss, SHEETS.rendered, []);
   const shouldAppend = options && options.append;
 
   if (!shouldAppend) {
-    sh.getDataRange().breakApart();
-    sh.clear();
-    applyReportCanvas_(sh);
+    deleteGeneratedTeamReportSheets_(ss);
+    resetReportSheet_(indexSheet);
+  } else if (indexSheet.getLastRow() === 0) {
+    resetReportSheet_(indexSheet);
   }
 
   if (!submissions.length) {
-    writeEmptyReportState_(sh);
-    sh.setFrozenRows(0);
-    sh.activate();
+    writeEmptyReportState_(indexSheet);
+    indexSheet.setFrozenRows(0);
+    indexSheet.activate();
     return;
   }
 
-  let row = shouldAppend ? Math.max(1, sh.getLastRow() + REPORT_LAYOUT.gap) : 1;
+  if (!shouldAppend) {
+    writeReportIndexHeader_(indexSheet);
+  } else if (indexSheet.getLastRow() === 0 || !String(indexSheet.getRange(1, 1).getValue()).trim()) {
+    writeReportIndexHeader_(indexSheet);
+  }
+
   submissions.forEach((submission) => {
-    row = renderSingleTeamReport_(sh, row, submission.payload, submission.timestamp, submission.submissionId);
-    row += REPORT_LAYOUT.gap;
+    const teamSheet = getOrCreateTeamReportSheet_(ss, submission.payload, submission.submissionId);
+    resetReportSheet_(teamSheet);
+    renderSingleTeamReport_(teamSheet, 1, submission.payload, submission.timestamp, submission.submissionId);
+    teamSheet.setFrozenRows(0);
+    appendReportIndexRow_(indexSheet, teamSheet, submission);
   });
 
-  sh.setFrozenRows(0);
-  sh.activate();
+  indexSheet.autoResizeColumns(1, 5);
+  indexSheet.activate();
+}
+
+function resetReportSheet_(sh) {
+  sh.getDataRange().breakApart();
+  sh.clear();
+  applyReportCanvas_(sh);
+}
+
+function writeReportIndexHeader_(sh) {
+  sh.getRange(1, 1, 1, 5)
+    .setValues([['Équipe', 'Niveau', 'Horodateur', 'Soumission', 'Onglet individuel']])
+    .setBackground(REPORT_THEME.white)
+    .setFontColor(REPORT_THEME.navy)
+    .setFontWeight('bold')
+    .setBorder(true, true, true, true, true, true, REPORT_THEME.red, SpreadsheetApp.BorderStyle.SOLID_THICK);
+  sh.setRowHeight(1, REPORT_LAYOUT.rowHeight);
+}
+
+function appendReportIndexRow_(sh, teamSheet, submission) {
+  const row = Math.max(2, sh.getLastRow() + 1);
+  const payload = submission.payload || {};
+  const gid = teamSheet.getSheetId();
+  sh.getRange(row, 1, 1, 5).setValues([[
+    payload.club || 'Équipe sans nom',
+    payload.niveau || '',
+    formatDateForReport_(submission.timestamp),
+    submission.submissionId,
+    '=HYPERLINK("#gid=' + gid + '", "Ouvrir la fiche")'
+  ]]);
+  sh.getRange(row, 1, 1, 5)
+    .setBackground(REPORT_THEME.white)
+    .setFontColor(REPORT_THEME.navy)
+    .setBorder(true, true, true, true, true, true, REPORT_THEME.lineBlue, SpreadsheetApp.BorderStyle.SOLID);
+  sh.setRowHeight(row, REPORT_LAYOUT.rowHeight);
+}
+
+function getOrCreateTeamReportSheet_(ss, payload, submissionId) {
+  const base = makeTeamReportSheetName_(payload, submissionId);
+  const existing = ss.getSheetByName(base);
+  if (existing) return existing;
+  return ss.insertSheet(base);
+}
+
+function makeTeamReportSheetName_(payload, submissionId) {
+  const club = (payload && payload.club) || 'Equipe sans nom';
+  const suffix = String(submissionId || '').slice(-8);
+  const rawName = SHEETS.teamReportPrefix + club + (suffix ? ' - ' + suffix : '');
+  return sanitizeSheetName_(rawName, 100);
+}
+
+function sanitizeSheetName_(name, maxLength) {
+  const cleaned = String(name || 'Equipe')
+    .replace(/[\\/?*\[\]:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return (cleaned || 'Equipe').slice(0, maxLength);
+}
+
+function deleteGeneratedTeamReportSheets_(ss) {
+  const sheets = ss.getSheets();
+  sheets.forEach((sh) => {
+    if (sh.getName().indexOf(SHEETS.teamReportPrefix) !== 0) return;
+    if (ss.getSheets().length <= 1) {
+      resetReportSheet_(sh);
+      return;
+    }
+    ss.deleteSheet(sh);
+  });
 }
 
 function writeEmptyReportState_(sh) {
@@ -399,18 +477,18 @@ function writeChapterTitle_(sh, row, title, subtitle) {
 
 function writeZoneBlocks_(sh, row, zone) {
   if ((zone.force || []).length) {
-    row = writeTypedItemTable_(sh, row, 'Force', 'Mouvements', zone.force, ['Moment', 'Outils', 'Tests', 'Paramètres', 'Critère d’évaluations', 'Vitesses isocinétisme', 'Modes isocinétisme'], forceValueForRow_);
+    row = writeTypedItemTable_(sh, row, 'Force', 'Mouvements', zone.force, ['Moment', 'Outils', 'Tests', 'Paramètres', 'Critère d’évaluations', 'Vitesses isocinétisme', 'Modes isocinétisme', 'Autres précisions'], forceValueForRow_);
   }
   if ((zone.mobilite || []).length) {
-    row = writeTypedItemTable_(sh, row, 'Mobilité', 'Mouvements', zone.mobilite, ['Moment', 'Outils', 'Critère d’évaluations'], mobilityValueForRow_);
+    row = writeTypedItemTable_(sh, row, 'Mobilité', 'Mouvements', zone.mobilite, ['Moment', 'Outils', 'Critère d’évaluations', 'Autres précisions'], mobilityValueForRow_);
   }
 
-  row = writeArrayTypeBlock_(sh, row, 'Proprioception', zone.proprio || zone.proprioception_equilibre, ['Moment', 'Tests', 'Critère d’évaluations']);
-  row = writeArrayTypeBlock_(sh, row, 'Questionnaire', zone.questionnaires, ['Moment', 'Questionnaire']);
-  row = writeArrayTypeBlock_(sh, row, 'Test de cognition', zone.cognition, ['Moment', 'Tests']);
-  row = writeArrayTypeBlock_(sh, row, 'Test oculaire', zone.test_oculaire, ['Moment', 'Données']);
-  row = writeArrayTypeBlock_(sh, row, 'Test vestibulaire', zone.test_vestibulaire, ['Moment', 'Données']);
-  row = writeArrayTypeBlock_(sh, row, 'Autres données', zone.autres_donnees, ['Moment', 'Données']);
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Proprioception', 'Proprioception / Équilibre', zone.proprio || zone.proprioception_equilibre, 'Tests / critères');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Questionnaire', 'Questionnaires', zone.questionnaires, 'Questionnaires');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Test de cognition', 'Test de cognition', zone.cognition, 'Tests');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Test oculaire', 'Test oculaire', zone.test_oculaire, 'Données');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Test vestibulaire', 'Test vestibulaire', zone.test_vestibulaire, 'Données');
+  row = writeZoneArrayTypeBlock_(sh, row, zone, 'Autres données', 'Autres données', zone.autres_donnees, 'Données');
 
   return row;
 }
@@ -427,7 +505,9 @@ function writeGlobalBlocks_(sh, row, globaux) {
     const block = globaux[cfg.key];
     if (!block || block.fait !== 'Oui') return;
     row = writeChapterTitle_(sh, row, 'EVALUATIONS TRANSVERSALES', cfg.label);
+    row = writeGlobalSelectionSummary_(sh, row, cfg.label, block);
     row = writeGlobalDetailTable_(sh, row, cfg.firstHeader, block.details_par_test || []);
+    row = writeBlockOtherDetails_(sh, row, 'Autres précisions', block, ['fait', 'tests', 'tests_ener', 'tests_vit', 'tests_cod', 'details_par_test']);
   });
 
   if (globaux.combat && globaux.combat.fait === 'Oui') {
@@ -436,18 +516,40 @@ function writeGlobalBlocks_(sh, row, globaux) {
       ['Test', 'Oui'],
       ['Moment', 'Retour au jeu']
     ]);
+    row = writeBlockOtherDetails_(sh, row, 'Autres précisions', globaux.combat, ['fait']);
   }
   return row;
 }
 
+function writeGlobalSelectionSummary_(sh, row, sectionLabel, block) {
+  return writeSimpleTwoColumnTable_(sh, row, sectionLabel, [
+    ['Tests sélectionnés', joinList_(block.tests)],
+    ['Énergétique', joinList_(block.tests_ener)],
+    ['Vitesse', joinList_(block.tests_vit)],
+    ['Changement de direction', joinList_(block.tests_cod)]
+  ]);
+}
+
+function writeBlockOtherDetails_(sh, row, sectionLabel, block, knownKeys) {
+  const details = formatOtherFields_(block, knownKeys);
+  if (!hasTextValue_(details)) return row;
+  return writeSimpleTwoColumnTable_(sh, row, sectionLabel, [['Détail', details]]);
+}
+
 function writeTypedItemTable_(sh, row, sectionLabel, firstHeader, items, rowLabels, valueGetter) {
+  const preparedItems = (items || []).filter(hasRenderableValue_);
+  if (!preparedItems.length) return row;
+
   const tableStartCol = 3;
-  const maxItemsPerTable = REPORT_LAYOUT.lastCol - tableStartCol;
-  const chunks = chunkItems_(items.length ? items : [{}], maxItemsPerTable);
+  const maxItemsPerTable = 1;
+  const chunks = chunkItems_(preparedItems, maxItemsPerTable);
 
   chunks.forEach((chunk, chunkIndex) => {
+    const displayRows = buildDisplayRows_(chunk, rowLabels, valueGetter);
+    if (!displayRows.length) return;
+
     const tableCols = chunk.length + 1;
-    const tableRows = rowLabels.length + 1;
+    const tableRows = displayRows.length + 1;
     const label = chunkIndex === 0 ? sectionLabel : sectionLabel + ' (suite)';
 
     writeSideLabel_(sh, row, tableRows, label);
@@ -459,12 +561,12 @@ function writeTypedItemTable_(sh, row, sectionLabel, firstHeader, items, rowLabe
       sh.getRange(row, tableStartCol + index + 1).setValue(item.mouvement || item.test || 'Item').setFontWeight('bold').setHorizontalAlignment('center');
     });
 
-    rowLabels.forEach((labelText, labelIndex) => {
+    displayRows.forEach((displayRow, labelIndex) => {
       const currentRow = row + labelIndex + 1;
-      sh.getRange(currentRow, tableStartCol).setValue(labelText).setFontWeight('bold').setHorizontalAlignment('left');
+      sh.getRange(currentRow, tableStartCol).setValue(displayRow.label).setFontWeight('bold').setHorizontalAlignment('left');
       chunk.forEach((item, itemIndex) => {
         sh.getRange(currentRow, tableStartCol + itemIndex + 1)
-          .setValue(valueGetter(item, labelText))
+          .setValue(displayValueOrBlank_(valueGetter(item, displayRow.sourceLabel || displayRow.label)))
           .setHorizontalAlignment('center');
       });
     });
@@ -476,28 +578,50 @@ function writeTypedItemTable_(sh, row, sectionLabel, firstHeader, items, rowLabe
   return row;
 }
 
+function writeZoneArrayTypeBlock_(sh, row, zone, sectionLabel, typeValue, rawItems, detailLabel) {
+  const items = normalizeArrayItems_(rawItems);
+  if (!items.length) return row;
+
+  const moments = momentsForZoneType_(zone, typeValue);
+  const rows = [
+    ['Moment', joinList_(moments)],
+    [detailLabel, joinList_(items)]
+  ];
+  return writeSimpleTwoColumnTable_(sh, row, sectionLabel, rows);
+}
+
+function momentsForZoneType_(zone, typeValue) {
+  if (!zone || !zone.moments_par_type) return zone && zone.moments ? zone.moments : [];
+  return zone.moments_par_type[typeValue] || zone.moments || [];
+}
+
 function writeArrayTypeBlock_(sh, row, sectionLabel, rawItems, labels) {
   const items = normalizeArrayItems_(rawItems);
   if (!items.length) return row;
 
-  const values = labels.map((label, index) => [label, arrayValueForIndex_(items, index, labels.length)]);
+  const values = labels
+    .map((label, index) => [label, arrayValueForIndex_(items, index, labels.length)])
+    .filter((line) => hasTextValue_(line[1]));
   return writeSimpleTwoColumnTable_(sh, row, sectionLabel, values);
 }
 
 function writeGlobalDetailTable_(sh, row, firstHeader, details) {
   if (!details.length) return row;
-  return writeTypedItemTable_(sh, row, '', firstHeader, details, ['Moment', 'Outils', 'Paramètres', 'Critère d’évaluations'], globalValueForRow_);
+  return writeTypedItemTable_(sh, row, '', firstHeader, details, ['Moment', 'Outils', 'Paramètres', 'Critère d’évaluations', 'Autres précisions'], globalValueForRow_);
 }
 
 function writeSimpleTwoColumnTable_(sh, row, sectionLabel, rows) {
+  const filledRows = (rows || []).filter((line) => hasTextValue_(line[1]));
+  if (!filledRows.length) return row;
+
   const tableStartCol = 4;
   const tableCols = 5;
-  const tableRows = rows.length;
+  const tableRows = filledRows.length;
   writeSideLabel_(sh, row, tableRows, sectionLabel);
 
   const range = sh.getRange(row, tableStartCol, tableRows, tableCols);
   range.setBackground(REPORT_THEME.navy).setFontColor(REPORT_THEME.white).setBorder(true, true, true, true, true, true, REPORT_THEME.lineBlue, SpreadsheetApp.BorderStyle.SOLID_THICK);
-  rows.forEach((line, index) => {
+  filledRows.forEach((line, index) => {
     sh.getRange(row + index, tableStartCol, 1, 2).merge().setValue(line[0]).setFontWeight('bold').setHorizontalAlignment('left');
     sh.getRange(row + index, tableStartCol + 2, 1, tableCols - 2).merge().setValue(line[1]).setHorizontalAlignment('center');
   });
@@ -508,7 +632,7 @@ function writeSimpleTwoColumnTable_(sh, row, sectionLabel, rows) {
 function writeCommonQuestions_(sh, row, payload) {
   row = writeChapterTitle_(sh, row, 'QUESTIONS COMMUNES', 'Limites et barrières');
   return writeSimpleTwoColumnTable_(sh, row, 'Questions communes', [
-    ['Limites / Barrières', joinList_(payload.barrieres)],
+    ['Limites / Barrières', joinList_([].concat(payload.barrieres || [], payload.barrieres_autre || []))],
     ['Guide les choix', joinList_([].concat(payload.raisons || [], payload.raisons_autre || []))]
   ]);
 }
@@ -534,6 +658,7 @@ function forceValueForRow_(item, label) {
   if (label === 'Critère d’évaluations') return joinList_(item.criteres);
   if (label === 'Vitesses isocinétisme') return joinList_(item.isoVitesses);
   if (label === 'Modes isocinétisme') return joinList_(item.isoModes);
+  if (label === 'Autres précisions') return formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'tests', 'params', 'criteres', 'isoVitesses', 'isoModes']);
   return '';
 }
 
@@ -541,6 +666,7 @@ function mobilityValueForRow_(item, label) {
   if (label === 'Moment') return joinList_(item.moments);
   if (label === 'Outils') return joinList_(item.outils);
   if (label === 'Critère d’évaluations') return joinList_(item.criteres);
+  if (label === 'Autres précisions') return formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'criteres']);
   return '';
 }
 
@@ -549,7 +675,47 @@ function globalValueForRow_(item, label) {
   if (label === 'Outils') return joinList_(item.outils);
   if (label === 'Paramètres') return joinList_(item.params);
   if (label === 'Critère d’évaluations') return joinList_(item.criteres);
+  if (label === 'Autres précisions') return formatOtherFields_(item, ['mouvement', 'test', 'moments', 'outils', 'params', 'criteres']);
   return '';
+}
+
+function buildDisplayRows_(items, rowLabels, valueGetter) {
+  return rowLabels
+    .map((label) => ({ label: label, sourceLabel: label }))
+    .filter((displayRow) => items.some((item) => hasTextValue_(valueGetter(item, displayRow.sourceLabel))));
+}
+
+function hasRenderableValue_(item) {
+  if (!item) return false;
+  if (typeof item !== 'object') return hasTextValue_(item);
+  return Object.keys(item).some((key) => hasTextValue_(item[key]));
+}
+
+function hasTextValue_(value) {
+  if (Array.isArray(value)) return value.some(hasTextValue_);
+  if (value && typeof value === 'object') return Object.keys(value).some((key) => hasTextValue_(value[key]));
+  const text = String(value || '').trim();
+  return text !== '' && text !== '-';
+}
+
+function displayValueOrBlank_(value) {
+  return hasTextValue_(value) ? value : '';
+}
+
+function formatOtherFields_(item, knownKeys) {
+  if (!item || typeof item !== 'object') return '';
+  const known = {};
+  knownKeys.forEach((key) => { known[key] = true; });
+  const lines = Object.keys(item)
+    .filter((key) => !known[key] && hasTextValue_(item[key]))
+    .map((key) => key + ' : ' + formatReportValue_(item[key]));
+  return lines.join('\n');
+}
+
+function formatReportValue_(value) {
+  if (Array.isArray(value)) return joinList_(value);
+  if (value && typeof value === 'object') return JSON.stringify(value);
+  return String(value || '').trim();
 }
 
 function chunkItems_(items, size) {
